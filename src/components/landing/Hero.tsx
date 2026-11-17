@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Cpu } from "lucide-react";
+import { ArrowRight, CheckCircle2, Cpu, Activity } from "lucide-react";
 import { DigitalTwinState } from "@/types";
 import LiquidGrid from "@/components/ui/LiquidGrid";
+import { useLiveTwinState } from "@/services/useLiveTwinState";
 
 interface HeroProps {
   initialState?: DigitalTwinState;
@@ -12,6 +13,30 @@ interface HeroProps {
 
 export function Hero({ initialState }: HeroProps) {
   const [selectedStation, setSelectedStation] = useState("S3");
+  const { state: liveState, isLive } = useLiveTwinState(2000, initialState);
+
+  // Compute live station data from backend or fallback seamlessly
+  const stationsList = [
+    { id: "S1", name: "Cutting", defaultRpm: 2400, defaultAmps: 18.2, defaultBuf: "45u" },
+    { id: "S2", name: "Milling", defaultRpm: 2400, defaultAmps: 18.1, defaultBuf: "50u" },
+    { id: "S3", name: "Welding", defaultRpm: 2400, defaultAmps: 18.0, defaultBuf: "50u", target: true },
+    { id: "S4", name: "Painting", defaultRpm: 2400, defaultAmps: 17.9, defaultBuf: "48u" },
+    { id: "S5", name: "Assembly", defaultRpm: 2400, defaultAmps: 18.0, defaultBuf: "52u" },
+    { id: "S6", name: "Packing", defaultRpm: 2400, defaultAmps: 18.1, defaultBuf: "End" },
+  ].map((base) => {
+    const liveSt = liveState?.stations?.find((s) => s.id === base.id);
+    return {
+      id: base.id,
+      name: liveSt?.name || base.name,
+      rpm: liveSt?.reported_rpm ?? base.defaultRpm,
+      amps: liveSt?.actual_amps ?? base.defaultAmps,
+      status: liveSt ? (liveSt.status === "NOMINAL" ? "Nominal" : liveSt.status) : (base.target ? "Monitored" : "Nominal"),
+      buf: liveSt ? (liveSt.buffer_to_next != null ? `${liveSt.buffer_to_next}u` : "End") : base.defaultBuf,
+      target: base.target,
+    };
+  });
+
+  const selectedNode = stationsList.find((s) => s.id === selectedStation) || stationsList[2];
 
   return (
     <section id="hero" className="relative w-full overflow-hidden border-b border-zinc-800/60 pt-16 pb-20 sm:pt-20 sm:pb-28">
@@ -82,7 +107,7 @@ export function Hero({ initialState }: HeroProps) {
             <div className="flex items-center gap-3 text-xs font-mono">
               <span className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Nominal Flow Equilibrium</span>
+                <span>{isLive ? "Live Backend Synchronized" : "Nominal Flow Equilibrium"}</span>
               </span>
               <span className="text-zinc-400">120 units/hr</span>
             </div>
@@ -90,14 +115,7 @@ export function Hero({ initialState }: HeroProps) {
 
           {/* 6 Stations Row */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { id: "S1", name: "Cutting", rpm: 2400, amps: 18.2, status: "Nominal", buf: "45u" },
-              { id: "S2", name: "Milling", rpm: 2400, amps: 18.1, status: "Nominal", buf: "50u" },
-              { id: "S3", name: "Welding", rpm: 2400, amps: 18.0, status: "Monitored", buf: "50u", target: true },
-              { id: "S4", name: "Painting", rpm: 2400, amps: 17.9, status: "Nominal", buf: "48u" },
-              { id: "S5", name: "Assembly", rpm: 2400, amps: 18.0, status: "Nominal", buf: "52u" },
-              { id: "S6", name: "Packing", rpm: 2400, amps: 18.1, status: "Nominal", buf: "End" },
-            ].map((station) => (
+            {stationsList.map((station) => (
               <button
                 key={station.id}
                 type="button"
@@ -129,7 +147,7 @@ export function Hero({ initialState }: HeroProps) {
               <Cpu className="h-4 w-4 text-cyan-400" />
               <span>Inspection Node: <strong className="text-white">Station {selectedStation}</strong></span>
               <span className="text-zinc-500">|</span>
-              <span className="text-zinc-300">Modbus Register 40012: Concordant with CT Sensor Baseline (18.0A)</span>
+              <span className="text-zinc-300">Modbus Register 40012: Concordant with CT Sensor Baseline ({selectedNode.amps}A)</span>
             </div>
             <div className="text-emerald-400">Physics Audit Passed &bull; Δ &lt; 1.5%</div>
           </div>
