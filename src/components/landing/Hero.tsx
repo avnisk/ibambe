@@ -71,7 +71,7 @@ export function Hero({ initialState }: HeroProps) {
           </h1>
 
           <p className="mt-4 text-sm sm:text-base text-zinc-300/90 leading-relaxed max-w-2xl">
-            When adversaries compromise PLC firmware to spoof normal RPM readings, Chronos-Twin cross-audits
+            When adversaries compromise PLC firmware to spoof normal RPM readings, VoltGuard cross-audits
             network telemetry against side-channel electrical amperage and multi-stage conservation of flow.
           </p>
 

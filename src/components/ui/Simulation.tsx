@@ -489,7 +489,7 @@ export default function Simulation() {
       {
         time: timestamp,
         sev: "RECOVERY",
-        src: "CHRONOS-CORE",
+        src: "VOLTGUARD-CORE",
         event: "Physical ST-03 robot restored to 185.0A baseline. Downstream buffer starvation cleared.",
       },
       ...prev.slice(0, 5),

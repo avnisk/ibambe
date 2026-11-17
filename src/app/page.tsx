@@ -23,7 +23,7 @@ export default async function Home() {
                 <span>Continuous 3D Physics Simulation</span>
               </div>
               <h2 className="mt-3 text-2xl sm:text-3xl font-medium tracking-tight text-zinc-100">
-                Interactive Automated Production Cell Workstation
+                VoltGuard Interactive Automated Production Cell Workstation
               </h2>
               <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
                 Real-time 6-station manufacturing flow with 3D camera orbits, material transformation stages, work order MES scheduling, and live telemetry tags.

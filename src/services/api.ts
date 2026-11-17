@@ -130,7 +130,7 @@ export const DEFAULT_MOCK_STATE: DigitalTwinState = {
       time: "12:00:02",
       severity: "INFO",
       source: "AMPERAGE-BUS",
-      target: "CHRONOS-CORE",
+      target: "VOLTGUARD-CORE",
       event: "CT clamp current readings match reported RPM baseline across all stations.",
     },
   ],

@@ -92,7 +92,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="operator@chronos-twin.io"
+              placeholder="operator@voltguard.io"
               className="block w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition"
             />
           </div>
@@ -137,7 +137,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-xs text-zinc-600">
-          Chronos-Twin v2.0 — Authorized personnel only
+          VoltGuard v4.0 — Authorized personnel only
         </p>
       </div>
     </div>

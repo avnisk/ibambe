@@ -1,5 +1,5 @@
 /**
- * Chronos-Twin Core Domain & API Types
+ * VoltGuard Core Domain & API Types
  */
 
 export type StationStatus = 

@@ -24,9 +24,9 @@ export function Navbar() {
           <div className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900">
             <Activity className="h-4 w-4 text-zinc-200" />
           </div>
-          <span className="text-sm font-medium tracking-tight">Chronos-Twin</span>
-          <span className="hidden sm:inline rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500">
-            v2.0
+          <span className="text-sm font-medium tracking-tight">VoltGuard</span>
+          <span className="hidden sm:inline rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-cyan-400">
+            v4.0
           </span>
         </Link>
 

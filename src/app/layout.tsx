@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Chronos-Twin — Cyber-Physical Digital Twin",
+  title: "VoltGuard — Cyber-Physical Digital Twin",
   description:
     "Physics-informed flow conservation, side-channel current verification, and automated honeypot deception for industrial manufacturing systems.",
 };
