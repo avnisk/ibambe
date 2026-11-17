@@ -6,7 +6,7 @@ import {
   toggleHoneypot as postHoneypot,
 } from "@/services/api";
 import { useLiveTwinState } from "@/services/useLiveTwinState";
-import { DigitalTwinState, FeatureItem, ApiResponse } from "@/types";
+import { FeatureItem } from "@/types";
 
 export const API_BASE_URL = BACKEND_BASE_URL;
 export const MOCK_DIGITAL_TWIN_STATE = DEFAULT_MOCK_STATE;

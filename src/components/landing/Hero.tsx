@@ -78,7 +78,7 @@ export function Hero({ initialState }: HeroProps) {
           {/* Primary & secondary actions */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
-              href="/dashboard/digital_twin_dashboard.html"
+              href="/dashboard"
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-100 px-5 text-xs sm:text-sm font-medium text-zinc-950 transition hover:bg-white shadow-md hover:shadow-cyan-500/10"
             >
               <span>Launch live twin dashboard</span>

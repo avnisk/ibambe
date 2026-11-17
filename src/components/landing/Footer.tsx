@@ -12,7 +12,7 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-6 text-xs text-zinc-400">
-          <Link href="/dashboard/digital_twin_dashboard.html" className="hover:text-zinc-200 transition">
+          <Link href="/dashboard" className="hover:text-zinc-200 transition">
             Live command center
           </Link>
           <a

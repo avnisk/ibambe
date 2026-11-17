@@ -61,7 +61,7 @@ export function Navbar() {
             Sign in
           </Link>
           <Link
-            href="/dashboard/digital_twin_dashboard.html"
+            href="/dashboard"
             className="hidden sm:inline-flex h-8 items-center justify-center rounded-md bg-zinc-100 px-3.5 text-xs font-medium text-zinc-950 shadow-sm transition hover:bg-white active:bg-zinc-200 whitespace-nowrap"
           >
             Command center
@@ -110,7 +110,7 @@ export function Navbar() {
                 Sign in
               </Link>
               <Link
-                href="/dashboard/digital_twin_dashboard.html"
+                href="/dashboard"
                 onClick={() => setMobileOpen(false)}
                 className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 text-sm font-medium text-zinc-950 shadow-sm transition hover:bg-white active:bg-zinc-200"
               >
