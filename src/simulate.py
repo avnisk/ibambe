@@ -1,5 +1,5 @@
 """
-simulate.py — Chronos-Twin stateful tick-based factory simulator.
+simulate.py — VoltGuard stateful tick-based factory simulator.
 
 Supports 3 scenarios:
   • normal               — baseline operations
@@ -73,7 +73,7 @@ class FactoryTwinSimulator:
     that the API layer can serialise directly to JSON.
     """
 
-    VALID_SCENARIOS = {"normal", "cyber_espionage", "operational_degradation"}
+    VALID_SCENARIOS = {"normal", "cyber_espionage", "operational_degradation", "cyber_overload"}
 
     def __init__(self):
         self._scenario: str = "normal"
@@ -114,10 +114,21 @@ class FactoryTwinSimulator:
                 CYBER_ATTACKER_TARGET,
                 f"UNAUTHORIZED WRITE_REG {CYBER_MODBUS_REG} + HMI REPLAY SPOOF",
             )
+        elif name == "cyber_overload":
+            self._attack_start_tick = 0
+            self._security_log.add(
+                "CRITICAL",
+                CYBER_ATTACKER_IP,
+                CYBER_ATTACKER_TARGET,
+                "UNAUTHORIZED REGISTER OVERLOAD + EXFILTRATION: Rapid burst polling 0x03 to 192.168.1.45:502",
+            )
+            # Pre-congest upstream buffer S2->S3
+            if ("S2", "S3") in self._buffers:
+                self._buffers[("S2", "S3")] = BUFFER_CAPACITY.get(("S2", "S3"), 100) * 0.92
 
     def deploy_honeypot(self, active: bool):
         self._honeypot_active = active
-        if active and self._scenario == "cyber_espionage":
+        if active and self._scenario in ("cyber_espionage", "cyber_overload"):
             self._honeypot_activated_tick = self._tick_count
             self._security_log.add(
                 "INFO",
@@ -136,7 +147,7 @@ class FactoryTwinSimulator:
 
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
 
-        # Inject periodic security events for cyber_espionage
+        # Inject periodic security events for cyber scenarios
         if self._scenario == "cyber_espionage" and not self._honeypot_active:
             if self._tick_count % 5 == 0:
                 self._security_log.add(
@@ -145,7 +156,15 @@ class FactoryTwinSimulator:
                     CYBER_ATTACKER_TARGET,
                     f"UNAUTHORIZED WRITE_REG {CYBER_MODBUS_REG} + HMI REPLAY SPOOF",
                 )
-        elif self._honeypot_active and self._scenario == "cyber_espionage":
+        elif self._scenario == "cyber_overload" and not self._honeypot_active:
+            if self._tick_count % 4 == 0:
+                self._security_log.add(
+                    "CRITICAL",
+                    CYBER_ATTACKER_IP,
+                    CYBER_ATTACKER_TARGET,
+                    "BURST EXFILTRATION: Rogue packet stream detected on PLC-S3 Modbus interface",
+                )
+        elif self._honeypot_active and self._scenario in ("cyber_espionage", "cyber_overload"):
             if self._tick_count % 8 == 0:
                 self._security_log.add(
                     "WARNING",
@@ -196,6 +215,20 @@ class FactoryTwinSimulator:
                         # HMI spoofed: reported RPM stays at baseline
                         reported_rpm = BASELINE_RPM[sid]
                         spoofed_uptime = CYBER_SPOOF_UPTIME
+
+                elif self._scenario == "cyber_overload":
+                    if self._honeypot_active:
+                        recovery_ticks = self._tick_count - (self._honeypot_activated_tick or 0)
+                        recovery = min(1.0, recovery_ticks * 0.12)
+                        throughput_factor = 1.0 - 0.35 * (1 - recovery)
+                        amp_factor = 1.0 + 0.35 * (1 - recovery)
+                        status = "RECOVERING"
+                    else:
+                        throughput_factor = 0.65
+                        amp_factor = 1.35   # Current spikes by 35%
+                        status = "SPOOFED"
+                        reported_rpm = BASELINE_RPM[sid]
+                        spoofed_uptime = 99.8
 
                 elif self._scenario == "operational_degradation":
                     throughput_factor = 1.0 - DEGRADATION_THROUGHPUT_DROP
@@ -249,6 +282,8 @@ class FactoryTwinSimulator:
             upstream_tp = BASELINE_THROUGHPUT[from_id]
             if from_id == "S3" and self._scenario == "cyber_espionage" and not self._honeypot_active:
                 upstream_tp *= (1 - CYBER_THROUGHPUT_DROP)
+            elif from_id == "S3" and self._scenario == "cyber_overload" and not self._honeypot_active:
+                upstream_tp *= 0.65
             elif from_id == "S3" and self._scenario == "operational_degradation":
                 upstream_tp *= (1 - DEGRADATION_THROUGHPUT_DROP)
             flow_rate = round(_jitter(upstream_tp, 0.01), 2)

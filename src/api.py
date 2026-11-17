@@ -1,5 +1,5 @@
 """
-api.py — Chronos-Twin FastAPI backend server.
+api.py — VoltGuard FastAPI backend server.
 
 Runs on port 8000. CORS-enabled for all origins.
 
@@ -41,8 +41,8 @@ from config import API_HOST, API_PORT
 # App init
 # ─────────────────────────────────────────────────────
 app = FastAPI(
-    title="Chronos-Twin API",
-    description="Physics-Informed Cyber-Physical Digital Twin — 6-station manufacturing line",
+    title="VoltGuard API",
+    description="VoltGuard — Physics-Informed Cyber-Physical Defense System for 6-station manufacturing line",
     version="1.0.0",
 )
 
@@ -67,7 +67,8 @@ class ScenarioRequest(BaseModel):
 
 
 class HoneypotRequest(BaseModel):
-    active: bool
+    active: bool = False
+    deploy: bool = False
 
 
 # ─────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ def root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "Chronos-Twin API", "version": "1.0.0"}
+    return {"status": "ok", "service": "VoltGuard API", "version": "1.0.0"}
 
 
 @app.get("/api/state")
@@ -121,7 +122,7 @@ def get_state():
 @app.post("/api/scenario")
 def set_scenario(body: ScenarioRequest):
     """Switch / reset the active scenario."""
-    valid = {"normal", "cyber_espionage", "operational_degradation"}
+    valid = {"normal", "cyber_espionage", "operational_degradation", "cyber_overload"}
     if body.scenario not in valid:
         raise HTTPException(
             status_code=422,
@@ -138,13 +139,14 @@ def set_scenario(body: ScenarioRequest):
 @app.post("/api/honeypot")
 def toggle_honeypot(body: HoneypotRequest):
     """Toggle Deception Honeypot PLC defense on Station 3."""
-    _sim.deploy_honeypot(body.active)
+    is_active = body.active or body.deploy
+    _sim.deploy_honeypot(is_active)
     return {
         "status": "ok",
-        "honeypot_active": body.active,
+        "honeypot_active": is_active,
         "message": (
             "Deception Honeypot PLC deployed — attacker shadow-routed to virtual decoy."
-            if body.active
+            if is_active
             else "Honeypot deactivated."
         ),
     }
@@ -155,7 +157,7 @@ def toggle_honeypot(body: HoneypotRequest):
 # ─────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("=" * 60)
-    print("  Chronos-Twin Backend Server")
+    print("  VoltGuard Backend Server")
     print(f"  Listening on http://{API_HOST}:{API_PORT}")
     print("  Endpoints:")
     print("    GET  http://localhost:8000/api/state")

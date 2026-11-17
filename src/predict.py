@@ -1,5 +1,5 @@
 """
-predict.py — Chronos-Twin deterministic cyber-physical analysis engine.
+predict.py — VoltGuard deterministic cyber-physical analysis engine.
 
 NO ML training.  Uses:
   • networkx graph traversal  — bottleneck / blast-radius propagation
@@ -206,10 +206,31 @@ def _classify(stations: list[dict], security_logs: list[dict], scenario: str) ->
         )
         risk_score += int(tp_drop_pct * 70)
 
+    amp_surge = max(0.0, s3["actual_amps"] / max(s3["expected_amps"], 1.0) - 1.0)
+
+    if amp_surge > 0.15:
+        evidence_factors.append(
+            f"Station 3 electrical current spike (+{amp_surge*100:.1f}%) during high-frequency register polling."
+        )
+        risk_score += int(amp_surge * 120)
+
     risk_score = min(100, risk_score)
 
     # Classification decision tree
-    if has_modbus_event and has_attacker_ip and mismatch > 0.08:
+    if scenario == "cyber_overload" or (has_attacker_ip and amp_surge > 0.15):
+        classification = "CYBER_SUSPECTED"
+        risk_score = max(risk_score, 92)
+        forensic_summary = (
+            f"Station 3 experiences rogue Modbus register overload and telemetry exfiltration. "
+            f"Motor electrical draw surged by +{amp_surge*100:.0f}% with cycle jitter alongside unauthorized bursts to {CYBER_ATTACKER_IP}."
+        )
+        recommended_actions = [
+            f"Deploy Deception Honeypot PLC on S3 to isolate {CYBER_ATTACKER_IP}",
+            "Rate-limit Modbus TCP port 502 polling rates",
+            "Divert incoming Milling buffer (S2→S3) to avoid buffer overflow",
+            "Quarantine network port S3-SW01 to decoy honeypot VLAN",
+        ]
+    elif has_modbus_event and has_attacker_ip and mismatch > 0.08:
         classification = "CYBER_SUSPECTED"
         forensic_summary = (
             f"Station 3 reports {s3['reported_uptime']}% uptime, but physical amperage dropped "

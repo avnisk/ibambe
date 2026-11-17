@@ -1,5 +1,5 @@
 """
-utils.py — Shared utility helpers for Chronos-Twin.
+utils.py — Shared utility helpers for VoltGuard.
 
 Kept intentionally lightweight; heavy logic lives in simulate.py / predict.py.
 """

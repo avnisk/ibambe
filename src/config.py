@@ -1,5 +1,5 @@
 """
-config.py — Chronos-Twin global constants & topology definition.
+config.py — VoltGuard global constants & topology definition.
 All simulation parameters live here so simulate.py / predict.py stay clean.
 """
 
