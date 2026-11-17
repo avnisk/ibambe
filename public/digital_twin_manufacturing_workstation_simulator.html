@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoltGuard // Cyber-Physical Production Line Twin</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #141820;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        .font-mono-tech {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #141820;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Floating 3D HUD Tag styling */
+        .station-hud-tag {
+            position: absolute;
+            pointer-events: auto;
+            transform: translate(-50%, -100%);
+            transition: transform 0.1s ease-out, opacity 0.2s ease, border-color 0.2s ease;
+            z-index: 20;
+            min-width: 175px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+        }
+        .station-hud-tag:hover {
+            z-index: 30;
+            border-color: #38bdf8;
+        }
+        .hud-header-green {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.8) 100%);
+        }
+        .hud-header-amber {
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.85) 100%);
+        }
+        .hud-header-spoofed {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.95) 0%, rgba(185, 28, 28, 0.9) 100%);
+            animation: pulseSpoof 1.2s infinite ease-in-out;
+        }
+        .hud-header-exfil {
+            background: linear-gradient(90deg, rgba(168, 85, 247, 0.95) 0%, rgba(225, 29, 72, 0.9) 100%);
+            animation: pulseExfil 1.0s infinite ease-in-out;
+        }
+        .hud-header-isolated {
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.95) 0%, rgba(16, 185, 129, 0.9) 100%);
+            box-shadow: 0 0 16px rgba(6, 182, 212, 0.7);
+        }
+        .hud-header-starved {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.95) 0%, rgba(220, 38, 38, 0.9) 100%);
+            animation: pulseSpoof 1.5s infinite ease-in-out;
+        }
+        .hud-header-idle {
+            background: linear-gradient(90deg, rgba(71, 85, 105, 0.9) 0%, rgba(51, 65, 85, 0.8) 100%);
+        }
+        .hud-body {
+            background: rgba(20, 26, 38, 0.92);
+        }
+
+        /* Keyframes */
+        @keyframes pulseSpoof {
+            0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.8); }
+            50% { box-shadow: 0 0 3px rgba(239, 68, 68, 0.3); }
+        }
+        @keyframes pulseExfil {
+            0%, 100% { box-shadow: 0 0 14px rgba(168, 85, 247, 0.9); }
+            50% { box-shadow: 0 0 4px rgba(225, 29, 72, 0.4); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px #10b981; }
+            50% { opacity: 0.4; box-shadow: 0 0 2px #10b981; }
+        }
+        .led-active {
+            animation: pulseGlow 1.5s infinite ease-in-out;
+        }
+
+        .donut-ring-circle {
+            transition: stroke-dashoffset 0.35s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col select-none">
+
+    <!-- TOP HEADER BAR: VOLTGUARD BRANDING & 4-SCENARIO SWITCHER -->
+    <header class="bg-[#181d27] border-b border-slate-700/80 px-4 py-2 flex flex-wrap items-center justify-between gap-3 z-40 shadow-lg">
+        <!-- Left Brand Logo -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 via-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/40">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-cyan-400 font-extrabold tracking-wider text-sm leading-none flex items-center gap-1.5">
+                        <span>VOLTGUARD</span>
+                        <span class="text-[9px] bg-cyan-950/80 text-cyan-300 px-1 py-0.2 rounded border border-cyan-500/30 font-mono-tech">v4.0</span>
+                    </div>
+                    <div class="text-[9px] text-slate-400 tracking-[0.22em] font-semibold mt-0.5">CYBER-OT TWIN</div>
+                </div>
+            </div>
+
+            <span class="hidden sm:inline-block h-5 w-[1px] bg-slate-700 mx-0.5"></span>
+            <span class="hidden md:inline-flex items-center gap-1.5 text-xs bg-slate-800/90 text-slate-300 px-2.5 py-1 rounded border border-slate-700">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 led-active" id="header-conn-dot"></span>
+                <span id="header-conn-text">Standalone / Ready</span>
+            </span>
+        </div>
+
+        <!-- Center: 4-SCENARIO SIMULATION CONTROL BAR -->
+        <div class="order-3 lg:order-none w-full lg:w-auto flex items-center justify-center">
+            <div class="flex flex-wrap items-center gap-1 bg-[#10141c] p-1 rounded-lg border border-slate-700/80 shadow-inner">
+                <span class="text-[10px] uppercase font-bold text-slate-400 px-2 font-mono-tech hidden xl:inline">Scenario:</span>
+                <button id="sc-btn-normal" onclick="switchScenario('normal')" class="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5">
+                    <span>🟢</span> <span>Normal Production</span>
+                </button>
+                <button id="sc-btn-operational" onclick="switchScenario('operational_mishap')" class="px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                    <span>🟡</span> <span>Operational Mishap</span>
+                </button>
+                <button id="sc-btn-spoof" onclick="switchScenario('cyber_spoof')" class="px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                    <span>🔴</span> <span>Cyberattack 1: HMI Spoof</span>
+                </button>
+                <button id="sc-btn-exfil" onclick="switchScenario('cyber_exfil')" class="px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+                    <span>🟣</span> <span>Cyberattack 2: Exfil &amp; Overload</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Controls & Clock -->
+        <div class="flex items-center gap-2 sm:gap-3 ml-auto lg:ml-0">
+            <!-- Speed Selector -->
+            <div class="flex items-center bg-[#10141c] rounded-lg p-0.5 border border-slate-700/80 text-xs">
+                <button onclick="setSimSpeed(1)" id="speed-1" class="speed-btn px-2 py-1 rounded-md font-mono-tech font-semibold bg-blue-600 text-white transition">1x</button>
+                <button onclick="setSimSpeed(2)" id="speed-2" class="speed-btn px-2 py-1 rounded-md font-mono-tech text-slate-400 hover:text-white transition">2x</button>
+                <button onclick="setSimSpeed(5)" id="speed-5" class="speed-btn px-2 py-1 rounded-md font-mono-tech text-slate-400 hover:text-white transition">5x</button>
+            </div>
+
+            <!-- Play / Pause / Reset -->
+            <div class="flex items-center gap-1.5">
+                <button id="btn-toggle-sim" onclick="toggleSimulation()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+                    <svg id="icon-pause" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    <svg id="icon-play" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                    <span id="btn-toggle-text">Pause</span>
+                </button>
+                <button onclick="resetSimulation()" title="Reset Line" class="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-200 border border-slate-600 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+            </div>
+
+            <div id="live-clock" class="hidden 2xl:block text-xs font-mono-tech text-slate-300 bg-[#10141c] px-2.5 py-1.5 rounded border border-slate-700/70">
+                Tue Nov 17 2026 14:33:00
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE: 70% 3D Viewport / 30% SCADA & Cyber Defense Sidebar -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+        <!-- 3D VIEWPORT -->
+        <section id="viewport-container" class="relative w-full lg:w-[68%] h-[58vh] lg:h-[calc(100vh-53px)] bg-gradient-to-b from-[#181d28] to-[#0f1218] overflow-hidden">
+            <div id="three-canvas-wrapper" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+            <!-- Top Camera Controls -->
+            <div class="absolute top-3 left-3 z-30 flex flex-wrap gap-2">
+                <button onclick="setCameraPreset(0)" id="cam-btn-0" class="cam-btn px-3 py-1.5 rounded-md text-xs font-medium bg-[#3b82f6] text-white shadow-lg shadow-blue-600/30 border border-blue-400/50 transition">
+                    Camera 1: Overview
+                </button>
+                <button onclick="setCameraPreset(1)" id="cam-btn-1" class="cam-btn px-3 py-1.5 rounded-md text-xs font-medium bg-[#1e2432]/90 hover:bg-[#2b3346] text-slate-200 shadow-lg border border-slate-600/70 transition">
+                    Camera 2: Machining &amp; Welding
+                </button>
+                <button onclick="setCameraPreset(2)" id="cam-btn-2" class="cam-btn px-3 py-1.5 rounded-md text-xs font-medium bg-[#1e2432]/90 hover:bg-[#2b3346] text-slate-200 shadow-lg border border-slate-600/70 transition">
+                    Camera 3: Finishing &amp; Packaging
+                </button>
+            </div>
+
+            <!-- Toggle HUD Tags -->
+            <div class="absolute top-3 right-3 z-30 flex items-center gap-2">
+                <button onclick="toggleHudTags()" id="btn-toggle-hud" class="px-2.5 py-1.5 rounded-md text-xs font-medium bg-[#1e2432]/90 hover:bg-slate-700 text-slate-200 border border-slate-600/70 shadow transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>HUD Tags: ON</span>
+                </button>
+            </div>
+
+            <!-- Floating 3D HUD Tags Layer -->
+            <div id="hud-tags-layer" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+
+            <!-- Bottom Pipeline Legend -->
+            <div class="absolute bottom-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                <div class="bg-[#181e2b]/90 backdrop-blur-md border border-slate-700/80 rounded-lg px-3 py-2 shadow-xl pointer-events-auto max-w-full overflow-x-auto">
+                    <div class="flex items-center gap-2 text-[11px] whitespace-nowrap">
+                        <span class="text-slate-400 font-semibold uppercase tracking-wider mr-1">Material Flow:</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-slate-400 inline-block"></span>1. Cut Sheet</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-sky-300 inline-block"></span>2. Milled Part</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block"></span>3. Welded Frame</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block"></span>4. Coated Housing</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"></span>5. Assembled Unit</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="inline-flex items-center gap-1 text-slate-200"><span class="w-2.5 h-2.5 rounded-sm bg-amber-700 inline-block"></span>6. Boxed Pallet</span>
+                    </div>
+                </div>
+
+                <div class="hidden sm:flex items-center gap-2 bg-[#181e2b]/85 backdrop-blur border border-slate-700/70 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-400 pointer-events-auto">
+                    <span>🖱️ Drag to Orbit • Scroll to Zoom • Click 3D Station to Inspect</span>
+                </div>
+            </div>
+
+            <!-- Station Inspector Drawer -->
+            <div id="station-inspector" class="hidden absolute bottom-14 left-3 z-30 w-84 bg-[#18202d]/95 backdrop-blur-md border border-cyan-500/60 rounded-xl p-3.5 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span id="insp-badge" class="px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">ST-01</span>
+                        <h3 id="insp-title" class="text-sm font-bold text-white">Cutting Machine</h3>
+                    </div>
+                    <button onclick="closeInspector()" class="text-slate-400 hover:text-white text-sm font-bold px-1.5">✕</button>
+                </div>
+                <p id="insp-desc" class="text-xs text-slate-300 mb-3 leading-relaxed">Cuts raw materials into required dimensions.</p>
+                <div class="grid grid-cols-2 gap-2 text-xs font-mono-tech">
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">MODEL / TYPE</div>
+                        <div id="insp-type" class="text-cyan-400 font-semibold mt-0.5">LSR-4020</div>
+                    </div>
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">STATE</div>
+                        <div id="insp-status" class="text-emerald-400 font-semibold mt-0.5">Running</div>
+                    </div>
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">REPORTED RPM</div>
+                        <div id="insp-rpm" class="text-slate-200 font-semibold mt-0.5">3000 RPM</div>
+                    </div>
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">TRUE CURRENT</div>
+                        <div id="insp-amps" class="text-emerald-400 font-semibold mt-0.5">185.0 A</div>
+                    </div>
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">TRUST SCORE</div>
+                        <div id="insp-trust" class="text-emerald-400 font-semibold mt-0.5">99% Nominal</div>
+                    </div>
+                    <div class="bg-[#121620] p-2 rounded border border-slate-700/60">
+                        <div class="text-[10px] text-slate-400">PROCESSED</div>
+                        <div id="insp-count" class="text-amber-400 font-semibold mt-0.5">0 units</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT SIDEBAR: CYBER DEFENSE, SCADA TELEMETRY & MES QUEUE -->
+        <aside class="w-full lg:w-[32%] lg:h-[calc(100vh-53px)] bg-[#141820] border-t lg:border-t-0 lg:border-l border-slate-700/80 p-3 flex flex-col gap-3 overflow-y-auto">
+
+            <!-- CARD 0: CYBER-PHYSICAL THREAT RADAR & ACTIVE HONEYPOT DEFENSE -->
+            <div id="forensics-card" class="bg-[#1c222e] rounded-xl border border-slate-700/90 p-3.5 shadow-xl transition-all">
+                <div class="flex items-center justify-between border-b border-slate-700/70 pb-2 mb-2.5">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">Cyber-Physical Threat Radar</h2>
+                    </div>
+                    <span id="threat-badge" class="px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                        NOMINAL
+                    </span>
+                </div>
+
+                <p id="threat-summary" class="text-[11px] text-slate-300 mb-2.5 leading-snug">
+                    All 6 physical &amp; network stages in equilibrium. Mass-balance flow and motor amperage match baseline.
+                </p>
+
+                <!-- Side-Channel Power Discrepancy Gauge -->
+                <div class="bg-[#121620] p-2.5 rounded-lg border border-slate-700/60 mb-2.5 font-mono-tech text-xs">
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                        <span>ST-03 SIDE-CHANNEL CORRELATION</span>
+                        <span id="discrepancy-pct" class="text-emerald-400 font-bold">100% MATCH</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] mb-2">
+                        <div>
+                            <span class="text-slate-500 text-[10px] block">REPORTED RPM</span>
+                            <span id="forensic-rpm" class="text-slate-100 font-bold">3000 RPM</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 text-[10px] block">TRUE CURRENT</span>
+                            <span id="forensic-amps" class="text-emerald-400 font-bold">185.0 A <span class="text-[10px] text-slate-500">(185A Base)</span></span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="discrepancy-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Active Deception Honeypot PLC Trigger Button -->
+                <div id="honeypot-container" class="mb-2.5">
+                    <button id="btn-honeypot" onclick="deployHoneypot()" class="w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-slate-800/80 text-slate-400 border border-slate-700">
+                        <span id="hp-icon">🛡️</span>
+                        <span id="hp-text">Deception Honeypot PLC (Standby)</span>
+                    </button>
+                </div>
+
+                <!-- Live OT Modbus Telemetry Feed -->
+                <div class="bg-[#0f131a] rounded-lg border border-slate-800 p-2 font-mono-tech text-[10px]">
+                    <div class="flex items-center justify-between text-slate-400 text-[9px] uppercase tracking-wider mb-1.5 pb-1 border-b border-slate-800">
+                        <span>OT Modbus Telemetry Feed</span>
+                        <span class="inline-flex items-center gap-1 text-emerald-400"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Live</span>
+                    </div>
+                    <div id="ot-log-container" class="space-y-1 max-h-24 overflow-y-auto pr-1">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 1: WORKSTATION INFORMATION -->
+            <div class="bg-[#1c222e] rounded-xl border border-slate-700/80 p-3 shadow-lg">
+                <div class="flex items-center justify-between border-b border-slate-700/70 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">Workstation Telemetry</h2>
+                    </div>
+                    <span id="overall-status-text" class="text-sm font-bold text-[#10b981] tracking-wide">Working</span>
+                </div>
+
+                <!-- 6 Station Cards Grid -->
+                <div id="station-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- CARD 2: WORK ORDER INFORMATION -->
+            <div class="bg-[#1c222e] rounded-xl border border-slate-700/80 p-3 shadow-lg">
+                <div class="flex items-center justify-between border-b border-slate-700/70 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">MES Work Order</h2>
+                    </div>
+                    <button onclick="triggerNewWorkOrder()" id="btn-new-wo" class="text-[10px] bg-blue-600/90 hover:bg-blue-500 text-white px-2 py-0.5 rounded font-medium transition">
+                        + Next Order
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                    <div class="space-y-0.5 text-xs flex-1 min-w-0">
+                        <div class="text-slate-400 truncate text-[11px]">WO No: <span id="wo-number" class="text-slate-100 font-mono-tech font-semibold">WO2026111705</span></div>
+                        <div class="text-slate-400 text-[11px]">Status: <span id="wo-status" class="text-emerald-400 font-semibold">In Progress</span></div>
+                        <div class="text-slate-400 truncate text-[11px]">Product: <span id="wo-product" class="text-slate-100 font-medium">ServoDrive-X200</span></div>
+                        <div class="text-slate-400 text-[11px]">Progress: <span id="wo-qty-text" class="text-cyan-300 font-mono-tech font-semibold">15 / 20 pcs</span></div>
+                    </div>
+
+                    <!-- Circular SVG Donut Ring -->
+                    <div class="flex flex-col items-center justify-center shrink-0">
+                        <div class="relative w-20 h-20 flex items-center justify-center">
+                            <svg class="w-20 h-20" viewBox="0 0 100 100">
+                                <defs>
+                                    <linearGradient id="donutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#38bdf8" />
+                                        <stop offset="100%" stop-color="#3b82f6" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="50" cy="50" r="38" stroke="#121620" stroke-width="10" fill="transparent" />
+                                <circle id="wo-donut-circle" class="donut-ring-circle" cx="50" cy="50" r="38" stroke="url(#donutGrad)" stroke-width="10" stroke-linecap="round" fill="transparent" stroke-dasharray="238.76" stroke-dashoffset="59.69" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="wo-percent-text" class="text-sm font-bold font-mono-tech text-white">75%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 3: PRODUCTION PLANNING TABLE -->
+            <div class="bg-[#1c222e] rounded-xl border border-slate-700/80 p-3 shadow-lg flex-1 flex flex-col min-h-[180px]">
+                <div class="flex items-center justify-between border-b border-slate-700/70 pb-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-100">Batch Queue</h2>
+                    </div>
+                </div>
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-[10px] text-slate-400 border-b border-slate-700/70">
+                                <th class="pb-1 font-medium">Work Order</th>
+                                <th class="pb-1 font-medium">Product</th>
+                                <th class="pb-1 font-medium text-right pr-2">Qty</th>
+                                <th class="pb-1 font-medium w-20">Completion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="planning-table-body" class="text-[11px] divide-y divide-slate-700/40 font-mono-tech">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast-banner" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-[#1e293b] border border-cyan-500/70 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span id="toast-message">Scenario Activated</span>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /**
+         * ============================================================================
+         * VOLTGUARD // CYBER-PHYSICAL PRODUCTION LINE DIGITAL TWIN
+         * 4-Scenario Live Simulation & Active Honeypot Defense
+         * ============================================================================
+         */
+
+        // --- 1. STATION CONFIGURATION & DUAL CYBER-PHYSICAL STATE ---
+        const STATIONS = [
+            {
+                id: 1,
+                code: "ST-01",
+                name: "Cutting Machine",
+                shortName: "Cutting",
+                type: "LSR-4020",
+                description: "Cuts raw metal sheets into required precision dimensions using a high-power fiber laser.",
+                status: "Running",
+                speed: "120 mm/s",
+                cycleTime: "3.5s",
+                completed: 15,
+                pos: { x: -13.5, y: 0, z: -4.5 },
+                hudOffset: { x: 0, y: 4.3, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            },
+            {
+                id: 2,
+                code: "ST-02",
+                name: "Milling Machine",
+                shortName: "Milling",
+                type: "CNC-VMC85",
+                description: "Shapes and machines the cut components with high-RPM multi-axis CNC tooling.",
+                status: "Running",
+                speed: "8500 RPM",
+                cycleTime: "4.0s",
+                completed: 15,
+                pos: { x: -4.5, y: 0, z: -4.5 },
+                hudOffset: { x: 0, y: 4.5, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            },
+            {
+                id: 3,
+                code: "ST-03",
+                name: "Welding Station",
+                shortName: "Welding",
+                type: "ER8-1450",
+                description: "Articulated 6-axis industrial robot arm joins the individual machined components.",
+                status: "Running",
+                speed: "45 mm/s",
+                cycleTime: "4.2s",
+                completed: 15,
+                pos: { x: 5.0, y: 0, z: -4.5 },
+                hudOffset: { x: 0, y: 4.6, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            },
+            {
+                id: 4,
+                code: "ST-04",
+                name: "Painting Station",
+                shortName: "Painting",
+                type: "COAT-PRO7",
+                description: "Automated electrostatic spray booth applies protective and decorative industrial coating.",
+                status: "Running",
+                speed: "2.4 bar",
+                cycleTime: "3.8s",
+                completed: 15,
+                pos: { x: 5.0, y: 0, z: 4.5 },
+                hudOffset: { x: 0, y: 4.5, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            },
+            {
+                id: 5,
+                code: "ST-05",
+                name: "Assembly Station",
+                shortName: "Assembly",
+                type: "ER35B-1810",
+                description: "Precision robotic arm combines internal sub-components into the final product.",
+                status: "Running",
+                speed: "1.8 m/s",
+                cycleTime: "3.6s",
+                completed: 15,
+                pos: { x: -4.5, y: 0, z: 4.5 },
+                hudOffset: { x: 0, y: 4.5, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            },
+            {
+                id: 6,
+                code: "ST-06",
+                name: "Packaging Station",
+                shortName: "Packaging",
+                type: "PKG-AUTO9",
+                description: "Automated boxing, sealing, and palletizing station packages the finished product.",
+                status: "Running",
+                speed: "18 box/m",
+                cycleTime: "3.2s",
+                completed: 15,
+                pos: { x: -13.5, y: 0, z: 4.5 },
+                hudOffset: { x: 0, y: 4.3, z: 0 },
+                reportedRpm: 3000,
+                actualAmps: 185.0,
+                expectedAmps: 185.0,
+                bufferPct: 100,
+                ttsSec: null,
+                trustScore: 99
+            }
+        ];
+
+        // --- 2. SCENARIO & FORENSIC STATE ---
+        let currentScenario = 'normal'; // 'normal' | 'operational_mishap' | 'cyber_spoof' | 'cyber_exfil'
+        let honeypotActive = false;
+        let isLiveBackend = false;
+        let starvationCountdowns = { 4: 18, 5: 12, 6: 6 };
+
+        let securityLogs = [
+            { time: "14:30:15", sev: "INFO", src: "SCADA-POLL", event: "All 6 PLC holding registers verified concordant with physical line throughput." },
+            { time: "14:30:18", sev: "INFO", src: "CT-CLAMP", event: "Current-clamp side-channel verifies motor RPM concordance (185.0A @ 3000 RPM)." }
+        ];
+
+        // --- 3. WORK ORDER & PLANNING STATE ---
+        let workOrders = [
+            { id: "WO2026111705", product: "ServoDrive-X200", drawing: "TH-06-204", target: 20, produced: 15, status: "In Progress" },
+            { id: "WO2026111704", product: "ServoDrive-X200", drawing: "TH-06-204", target: 25, produced: 25, status: "Completed" },
+            { id: "WO2026111703", product: "Actuator-M90", drawing: "TH-04-112", target: 30, produced: 30, status: "Completed" },
+            { id: "WO2026111702", product: "GearBox-H40", drawing: "TH-02-089", target: 20, produced: 20, status: "Completed" },
+            { id: "WO2026111701", product: "ServoDrive-X200", drawing: "TH-06-204", target: 15, produced: 15, status: "Completed" }
+        ];
+        let activeOrderIndex = 0;
+        let woCounter = 6;
+
+        // --- 4. SIMULATION & THREE.JS GLOBALS ---
+        let isRunning = true;
+        let simSpeed = 1;
+        let showHudTags = true;
+        let selectedStationId = null;
+
+        let scene, camera, renderer;
+        let stationMeshes = [];
+        let animatableParts = {};
+        let palletBoxes = [];
+        let workpieces = [];
+        let lastFrameTime = performance.now();
+        let uiSyncAccumulator = 0;
+
+        const camTarget = new THREE.Vector3(0, 1.8, 0);
+        let camSpherical = { radius: 34, theta: -Math.PI * 0.22, phi: Math.PI * 0.32 };
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+        let isCameraTransitioning = false;
+        const desiredCamPos = new THREE.Vector3();
+        const desiredCamTarget = new THREE.Vector3();
+
+        const CAMERA_PRESETS = [
+            { pos: new THREE.Vector3(-18, 16, 26), target: new THREE.Vector3(0, 1.5, 0) },
+            { pos: new THREE.Vector3(-2, 8, -13), target: new THREE.Vector3(2, 2.0, -4.5) },
+            { pos: new THREE.Vector3(12, 9, 14), target: new THREE.Vector3(0, 1.8, 4.5) }
+        ];
+
+        const PATH_POINTS = [
+            new THREE.Vector3(-18.0, 1.05, -4.5),
+            new THREE.Vector3(11.5, 1.05, -4.5),
+            new THREE.Vector3(11.5, 1.05, 4.5),
+            new THREE.Vector3(-18.0, 1.05, 4.5)
+        ];
+
+        let pathSegmentLengths = [];
+        let totalPathLength = 0;
+        for (let i = 0; i < PATH_POINTS.length - 1; i++) {
+            const segLen = PATH_POINTS[i].distanceTo(PATH_POINTS[i + 1]);
+            pathSegmentLengths.push(segLen);
+            totalPathLength += segLen;
+        }
+
+        function getPointAtDistance(d) {
+            d = Math.max(0, Math.min(totalPathLength, d));
+            let accum = 0;
+            for (let i = 0; i < pathSegmentLengths.length; i++) {
+                const segLen = pathSegmentLengths[i];
+                if (d <= accum + segLen) {
+                    const alpha = (d - accum) / segLen;
+                    return new THREE.Vector3().lerpVectors(PATH_POINTS[i], PATH_POINTS[i + 1], alpha);
+                }
+                accum += segLen;
+            }
+            return PATH_POINTS[PATH_POINTS.length - 1].clone();
+        }
+
+        // --- 5. SCENARIO TOGGLING & STATE ENGINE ---
+        function switchScenario(scKey) {
+            currentScenario = scKey;
+            honeypotActive = false;
+            starvationCountdowns = { 4: 18, 5: 12, 6: 6 };
+
+            // Update Header Switcher Buttons
+            const btnKeys = ['normal', 'operational', 'spoof', 'exfil'];
+            const mapping = {
+                'normal': 'normal',
+                'operational_mishap': 'operational',
+                'cyber_spoof': 'spoof',
+                'cyber_exfil': 'exfil'
+            };
+
+            btnKeys.forEach(k => {
+                const el = document.getElementById(`sc-btn-${k}`);
+                if (!el) return;
+                if (k === mapping[scKey]) {
+                    el.className = "px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5";
+                } else {
+                    el.className = "px-2.5 py-1 rounded-md text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5";
+                }
+            });
+
+            const timestamp = new Date().toTimeString().split(' ')[0];
+
+            if (scKey === 'normal') {
+                STATIONS.forEach(s => {
+                    s.reportedRpm = 3000;
+                    s.actualAmps = 185.0;
+                    s.expectedAmps = 185.0;
+                    s.status = "Running";
+                    s.trustScore = 99;
+                    s.ttsSec = null;
+                });
+                addSecurityLog(timestamp, "INFO", "SCADA-POLL", "Normal production profile restored across all 6 stations. Mass-flow equilibrium verified.");
+                showToast("🟢 Normal Production Activated: All stations nominal (185A @ 3000 RPM)");
+            } else if (scKey === 'operational_mishap') {
+                STATIONS.forEach(s => {
+                    s.reportedRpm = 3000;
+                    s.actualAmps = 185.0;
+                    s.expectedAmps = 185.0;
+                    s.status = "Running";
+                    s.trustScore = 99;
+                    s.ttsSec = null;
+                });
+                // Station 3 Degraded: proportional drop proves physical wear, NOT cyberattack
+                STATIONS[2].reportedRpm = 2100;
+                STATIONS[2].actualAmps = 128.0;
+                STATIONS[2].status = "Degraded (Bearing Friction)";
+                STATIONS[2].trustScore = 98;
+
+                STATIONS[3].ttsSec = 45;
+                STATIONS[4].ttsSec = 52;
+                STATIONS[5].ttsSec = 60;
+
+                addSecurityLog(timestamp, "WARN", "MOTOR-BEARING", "ST-03 mechanical friction detected. Physical Amps (128A) drops proportionally with reported RPM (2100). Fault verified non-cyber.");
+                showToast("🟡 Operational Mishap: Mechanical bearing wear on ST-03 (Physics Honest)");
+            } else if (scKey === 'cyber_spoof') {
+                STATIONS.forEach(s => {
+                    s.reportedRpm = 3000;
+                    s.actualAmps = 185.0;
+                    s.expectedAmps = 185.0;
+                    s.status = "Running";
+                    s.trustScore = 99;
+                    s.ttsSec = null;
+                });
+                // Station 3 Spoofed: HMI claims 3002 RPM, but true current drops to 122A (-34%)
+                STATIONS[2].reportedRpm = 3002;
+                STATIONS[2].actualAmps = 122.0;
+                STATIONS[2].status = "Running (Spoofed)";
+                STATIONS[2].trustScore = 12;
+
+                // Downstream starvation cascades
+                STATIONS[3].status = "Starving";
+                STATIONS[3].ttsSec = starvationCountdowns[4];
+                STATIONS[4].status = "Starving";
+                STATIONS[4].ttsSec = starvationCountdowns[5];
+                STATIONS[5].status = "Starving";
+                STATIONS[5].ttsSec = starvationCountdowns[6];
+
+                addSecurityLog(timestamp, "CRITICAL", "MODBUS-TCP", "Unauthorized FC16 from 192.168.1.45 forged holding reg 40012=3002 RPM.");
+                addSecurityLog(timestamp, "ALERT", "CT-CLAMP", "Side-channel amperage shows TRUE draw is 122.0A (-34%). SENSOR SPOOF CONFIRMED!");
+                showToast("🔴 Cyberattack 1 Injected: HMI Sensor Spoofing & Silent Motor Throttling on ST-03!");
+            } else if (scKey === 'cyber_exfil') {
+                STATIONS.forEach(s => {
+                    s.reportedRpm = 3000;
+                    s.actualAmps = 185.0;
+                    s.expectedAmps = 185.0;
+                    s.status = "Running";
+                    s.trustScore = 99;
+                    s.ttsSec = null;
+                });
+                // Station 3 Overload & Exfiltration
+                STATIONS[2].reportedRpm = 2995;
+                STATIONS[2].actualAmps = 248.0;
+                STATIONS[2].status = "Overload (Exfiltrating)";
+                STATIONS[2].trustScore = 8;
+
+                addSecurityLog(timestamp, "CRITICAL", "EXFIL-TRAP", "Outbound encrypted tunnel detected to 10.0.4.88 (CAD G-Code exfiltration).");
+                addSecurityLog(timestamp, "EMERGENCY", "AMPERAGE-BUS", "Spindle current spike: 248.0A (+34%) on ST-03! Thermal runaway threshold imminent.");
+                showToast("🟣 Cyberattack 2 Injected: CAD Exfiltration & Spindle Overdrive on ST-03!");
+            }
+
+            // Sync with backend API asynchronously
+            fetch('http://localhost:8000/api/scenario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scenario: scKey })
+            }).catch(() => {});
+
+            updateForensicsCard();
+            updateHudTagValues();
+            renderStationCards();
+        }
+
+        // --- 6. ACTIVE DECEPTION HONEYPOT DEFENSE ---
+        function deployHoneypot() {
+            if (currentScenario === 'normal' || currentScenario === 'operational_mishap') {
+                showToast("ℹ️ Deception Honeypot on Standby. No active cyber intrusion to quarantine.");
+                return;
+            }
+
+            honeypotActive = true;
+            const timestamp = new Date().toTimeString().split(' ')[0];
+
+            // Shadow-isolate ST-03 and restore normal operations
+            STATIONS[2].status = "SHADOW-ISOLATED";
+            STATIONS[2].actualAmps = 185.0;
+            STATIONS[2].reportedRpm = 3000;
+            STATIONS[2].trustScore = 95;
+
+            // Clear downstream starvation
+            for (let i = 3; i < 6; i++) {
+                STATIONS[i].status = "Running";
+                STATIONS[i].ttsSec = null;
+            }
+
+            addSecurityLog(timestamp, "DEFENSE", "DECEPTION-PLC", "Attacker rerouted to Decoy Virtual PLC (10.99.0.42) — Feeding Watermarked Fake Blueprints.");
+            addSecurityLog(timestamp, "RECOVERY", "CHRONOS-CORE", "Physical ST-03 robot restored to 185.0A baseline. Downstream buffer starvation cleared.");
+
+            showToast("🛡️ Deception Honeypot Engaged! Attacker quarantined to virtual decoy; production restored!");
+
+            fetch('http://localhost:8000/api/honeypot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: true, deploy: true })
+            }).catch(() => {});
+
+            updateForensicsCard();
+            updateHudTagValues();
+            renderStationCards();
+        }
+
+        function addSecurityLog(time, sev, src, event) {
+            securityLogs.unshift({ time, sev, src, event });
+            if (securityLogs.length > 8) securityLogs.pop();
+            renderSecurityLogs();
+        }
+
+        function renderSecurityLogs() {
+            const container = document.getElementById('ot-log-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            securityLogs.forEach(l => {
+                const sevColor = l.sev === "CRITICAL" || l.sev === "EMERGENCY" ? "text-rose-400 bg-rose-950/50 border border-rose-800/60" :
+                                 l.sev === "ALERT" || l.sev === "WARN" ? "text-amber-400 bg-amber-950/50 border border-amber-800/60" :
+                                 l.sev === "DEFENSE" || l.sev === "RECOVERY" ? "text-cyan-300 bg-cyan-950/60 border border-cyan-700/60" :
+                                 "text-emerald-400 bg-emerald-950/40 border border-emerald-800/50";
+
+                const row = document.createElement('div');
+                row.className = "flex items-start gap-1.5 leading-snug py-0.5 border-b border-slate-800/50";
+                row.innerHTML = `
+                    <span class="text-slate-500 whitespace-nowrap">${l.time}</span>
+                    <span class="px-1 py-0.2 rounded text-[8px] font-bold ${sevColor} whitespace-nowrap">${l.sev}</span>
+                    <span class="text-slate-300 truncate">${l.event}</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateForensicsCard() {
+            const badge = document.getElementById('threat-badge');
+            const summary = document.getElementById('threat-summary');
+            const rpmEl = document.getElementById('forensic-rpm');
+            const ampsEl = document.getElementById('forensic-amps');
+            const pctEl = document.getElementById('discrepancy-pct');
+            const barEl = document.getElementById('discrepancy-bar');
+            const hpBtn = document.getElementById('btn-honeypot');
+            const hpText = document.getElementById('hp-text');
+
+            if (honeypotActive) {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm shadow-cyan-500/30";
+                badge.textContent = "SHADOW-ISOLATED";
+                summary.textContent = "Active cyber deception engaged. Intruder isolated inside virtual honeypot PLC; true production running nominally.";
+                rpmEl.textContent = "3000 RPM (Real)";
+                ampsEl.innerHTML = `<span class="text-cyan-300">185.0 A</span> <span class="text-[10px] text-slate-500">(Restored)</span>`;
+                pctEl.textContent = "100% PROTECTED";
+                pctEl.className = "text-cyan-300 font-bold";
+                barEl.style.width = "100%";
+                barEl.className = "h-full bg-cyan-400 transition-all duration-300";
+
+                hpBtn.className = "w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-cyan-950/80 text-cyan-200 border border-cyan-500/60";
+                hpText.textContent = "⚡ Honeypot Active: Virtual Decoy PLC Engaged";
+                return;
+            }
+
+            if (currentScenario === 'normal') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+                badge.textContent = "NOMINAL";
+                summary.textContent = "All 6 physical & network stages in equilibrium. Mass-balance flow and motor amperage match baseline.";
+                rpmEl.textContent = "3000 RPM";
+                ampsEl.innerHTML = `<span class="text-emerald-400">185.0 A</span> <span class="text-[10px] text-slate-500">(185A Base)</span>`;
+                pctEl.textContent = "100% MATCH";
+                pctEl.className = "text-emerald-400 font-bold";
+                barEl.style.width = "100%";
+                barEl.className = "h-full bg-emerald-500 transition-all duration-300";
+
+                hpBtn.className = "w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-slate-800/80 text-slate-400 border border-slate-700 cursor-not-allowed";
+                hpText.textContent = "Deception Honeypot PLC (Standby)";
+            } else if (currentScenario === 'operational_mishap') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-amber-500/20 text-amber-400 border border-amber-500/40";
+                badge.textContent = "OPERATIONAL MISHAP";
+                summary.textContent = "Mechanical bearing wear on ST-03. Physics honest: motor draw (128A) and RPM (2100) drop concordantly.";
+                rpmEl.textContent = "2100 RPM";
+                ampsEl.innerHTML = `<span class="text-amber-400">128.0 A</span> <span class="text-[10px] text-slate-500">(-31% Physics Match)</span>`;
+                pctEl.textContent = "PHYSICS HONEST";
+                pctEl.className = "text-amber-400 font-bold";
+                barEl.style.width = "70%";
+                barEl.className = "h-full bg-amber-500 transition-all duration-300";
+
+                hpBtn.className = "w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-slate-800/80 text-slate-400 border border-slate-700 cursor-not-allowed";
+                hpText.textContent = "Deception Honeypot PLC (Standby)";
+            } else if (currentScenario === 'cyber_spoof') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse";
+                badge.textContent = "CYBERATTACK: TELEMETRY SPOOF";
+                summary.textContent = "CRITICAL: Modbus register spoofing on ST-03. HMI reports 3002 RPM while physical CT clamp shows true draw is 122.0A (-34%)!";
+                rpmEl.textContent = "3002 RPM (Spoofed)";
+                ampsEl.innerHTML = `<span class="text-rose-400 animate-pulse">122.0 A</span> <span class="text-[10px] text-rose-300">(-34% MISMATCH)</span>`;
+                pctEl.textContent = "LIE DETECTED (-34%)";
+                pctEl.className = "text-rose-400 font-bold";
+                barEl.style.width = "40%";
+                barEl.className = "h-full bg-rose-500 transition-all duration-300 animate-pulse";
+
+                hpBtn.className = "w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border border-cyan-400 shadow-cyan-500/30 cursor-pointer animate-pulse";
+                hpText.textContent = "🛡️ Deploy Deception Honeypot PLC";
+            } else if (currentScenario === 'cyber_exfil') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-tech font-bold uppercase bg-purple-500/20 text-purple-400 border border-purple-500/50 animate-pulse";
+                badge.textContent = "CYBERATTACK: EXFILTRATION";
+                summary.textContent = "EMERGENCY: CAD/G-Code exfiltration tunnel active to 10.0.4.88. Spindle overdriven to 248.0A while register 40010 stays masked!";
+                rpmEl.textContent = "2995 RPM (Masked)";
+                ampsEl.innerHTML = `<span class="text-purple-400 animate-pulse">248.0 A</span> <span class="text-[10px] text-purple-300">(+34% OVERLOAD)</span>`;
+                pctEl.textContent = "OVERLOAD (+34%)";
+                pctEl.className = "text-purple-400 font-bold";
+                barEl.style.width = "100%";
+                barEl.className = "h-full bg-purple-500 transition-all duration-300 animate-pulse";
+
+                hpBtn.className = "w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white border border-purple-400 shadow-purple-500/30 cursor-pointer animate-pulse";
+                hpText.textContent = "🛡️ Deploy Deception Honeypot PLC";
+            }
+        }
+
+        // --- 7. THREE.JS SCENE CREATION ---
+        function initThreeScene() {
+            const container = document.getElementById('three-canvas-wrapper');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x131722);
+            scene.fog = new THREE.FogExp2(0x131722, 0.015);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            updateCameraFromSpherical();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting Setup
+            const hemiLight = new THREE.HemisphereLight(0xe2e8f0, 0x1e293b, 0.65);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(-15, 30, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 100;
+            dirLight.shadow.camera.left = -30;
+            dirLight.shadow.camera.right = 30;
+            dirLight.shadow.camera.top = 20;
+            dirLight.shadow.camera.bottom = -20;
+            scene.add(dirLight);
+
+            const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
+            fillLight.position.set(20, 15, -15);
+            scene.add(fillLight);
+
+            buildFactoryEnvironment();
+            buildConveyorSystem();
+            buildAllStations();
+
+            // Pre-seed workpieces along conveyor
+            [0.08, 0.25, 0.42, 0.60, 0.78].forEach(p => spawnWorkpiece(p * totalPathLength));
+
+            setupViewportInteractions(renderer.domElement);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildFactoryEnvironment() {
+            // Factory Grid Floor
+            const floorGeo = new THREE.PlaneGeometry(75, 55);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x181e2b,
+                roughness: 0.85,
+                metalness: 0.2
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            const grid = new THREE.GridHelper(75, 50, 0x334155, 0x1e293b);
+            grid.position.y = 0.01;
+            scene.add(grid);
+
+            // Safety Walkway Marking
+            const tapeMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+            const tape1 = new THREE.Mesh(new THREE.PlaneGeometry(62, 0.15), tapeMat);
+            tape1.rotation.x = -Math.PI / 2;
+            tape1.position.set(0, 0.02, -8.5);
+            scene.add(tape1);
+
+            const tape2 = new THREE.Mesh(new THREE.PlaneGeometry(62, 0.15), tapeMat);
+            tape2.rotation.x = -Math.PI / 2;
+            tape2.position.set(0, 0.02, 8.5);
+            scene.add(tape2);
+        }
+
+        function buildConveyorSystem() {
+            const conveyorGroup = new THREE.Group();
+            const beltMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.4 });
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.4, roughness: 0.3 });
+
+            function createConveyorRun(x1, z1, x2, z2) {
+                const start = new THREE.Vector3(x1, 0, z1);
+                const end = new THREE.Vector3(x2, 0, z2);
+                const len = start.distanceTo(end);
+                const run = new THREE.Group();
+
+                const belt = new THREE.Mesh(new THREE.BoxGeometry(len, 0.12, 1.3), beltMat);
+                belt.position.set(0, 0.95, 0);
+                belt.castShadow = true;
+                belt.receiveShadow = true;
+                run.add(belt);
+
+                const railF = new THREE.Mesh(new THREE.BoxGeometry(len, 0.18, 0.08), railMat);
+                railF.position.set(0, 1.05, 0.68);
+                run.add(railF);
+
+                const railB = new THREE.Mesh(new THREE.BoxGeometry(len, 0.18, 0.08), railMat);
+                railB.position.set(0, 1.05, -0.68);
+                run.add(railB);
+
+                const legCount = Math.max(2, Math.floor(len / 3.2));
+                for (let i = 0; i <= legCount; i++) {
+                    const legX = -len / 2 + (i / legCount) * len;
+                    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.95, 8), frameMat);
+                    leg.position.set(legX, 0.475, 0.55);
+                    leg.castShadow = true;
+                    run.add(leg);
+
+                    const legOther = leg.clone();
+                    legOther.position.z = -0.55;
+                    run.add(legOther);
+                }
+
+                const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+                run.position.set(mid.x, 0, mid.z);
+                const angle = Math.atan2(end.z - start.z, end.x - start.x);
+                run.rotation.y = -angle;
+
+                conveyorGroup.add(run);
+            }
+
+            // Top run (Left to Right): ST-01 Cutting -> ST-02 Milling -> ST-03 Welding
+            createConveyorRun(-18.2, -4.5, 12.2, -4.5);
+            // Cross-Transfer Conveyor: ST-03 Welding -> ST-04 Painting
+            createConveyorRun(11.5, -4.5, 11.5, 4.5);
+            // Bottom run (Right to Left): ST-04 Painting -> ST-05 Assembly -> ST-06 Packaging
+            createConveyorRun(12.2, 4.5, -18.2, 4.5);
+
+            // Raw Material Pallet (Input at ST-01)
+            const palletMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.9 });
+            const inPallet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 1.6), palletMat);
+            inPallet.position.set(-17.5, 0.1, -4.5);
+            conveyorGroup.add(inPallet);
+
+            for (let i = 0; i < 5; i++) {
+                const sheet = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.2, 0.04, 1.2),
+                    new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.3 })
+                );
+                sheet.position.set(-17.5, 0.22 + i * 0.05, -4.5);
+                conveyorGroup.add(sheet);
+            }
+
+            // Finished Goods Pallet (Output at ST-06)
+            const outPallet = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 1.8), palletMat);
+            outPallet.position.set(-17.5, 0.1, 4.5);
+            conveyorGroup.add(outPallet);
+
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0xca8a04, roughness: 0.8 });
+            for (let x = 0; x < 2; x++) {
+                for (let z = 0; z < 2; z++) {
+                    const bx = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.65, 0.7), boxMat);
+                    bx.position.set(-17.85 + x * 0.7, 0.525, 4.15 + z * 0.7);
+                    bx.castShadow = true;
+                    palletBoxes.push(bx);
+                    conveyorGroup.add(bx);
+                }
+            }
+
+            scene.add(conveyorGroup);
+        }
+
+        function buildAllStations() {
+            const steelDark = new THREE.MeshStandardMaterial({ color: 0x242c3b, metalness: 0.6, roughness: 0.4 });
+            const steelLight = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.5, roughness: 0.35 });
+            const robotYellow = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.35, roughness: 0.35 });
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8, transparent: true, opacity: 0.25, roughness: 0.1, side: THREE.DoubleSide
+            });
+
+            function registerStationBase(stationObj, stationData, width = 3.6, depth = 3.6) {
+                stationObj.position.set(stationData.pos.x, 0.15, stationData.pos.z);
+
+                const pad = new THREE.Mesh(
+                    new THREE.BoxGeometry(width, 0.08, depth),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 })
+                );
+                pad.position.y = 0.04;
+                pad.receiveShadow = true;
+                stationObj.add(pad);
+
+                const hitBox = new THREE.Mesh(
+                    new THREE.BoxGeometry(width, 3.8, depth),
+                    new THREE.MeshBasicMaterial({ visible: false })
+                );
+                hitBox.position.y = 1.9;
+                hitBox.userData = { stationId: stationData.id };
+                stationObj.add(hitBox);
+                stationMeshes.push(hitBox);
+
+                // Control Cabinet with LED
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.8, 0.65), steelLight);
+                cabinet.position.set(-width / 2 - 0.65, 0.9, stationData.pos.z < 0 ? -1.1 : 1.1);
+                cabinet.castShadow = true;
+                stationObj.add(cabinet);
+
+                const statusLed = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.09, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: 0x10b981 })
+                );
+                statusLed.position.set(-width / 2 - 0.65, 1.9, stationData.pos.z < 0 ? -1.1 : 1.1);
+                stationObj.add(statusLed);
+
+                scene.add(stationObj);
+            }
+
+            // ST-01: Cutting Machine
+            const st1 = new THREE.Group();
+            registerStationBase(st1, STATIONS[0], 3.8, 3.6);
+            const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.45, 2.7, 2.8), steelDark);
+            pillarL.position.set(-1.3, 1.35, 0);
+            st1.add(pillarL);
+            const pillarR = pillarL.clone();
+            pillarR.position.x = 1.3;
+            st1.add(pillarR);
+            const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.35, 0.6), steelDark);
+            crossBeam.position.set(0, 2.6, 0);
+            st1.add(crossBeam);
+
+            const laserCarriage = new THREE.Group();
+            const laserHead = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.06, 0.6, 12),
+                new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.6 })
+            );
+            laserHead.position.y = 2.1;
+            laserCarriage.add(laserHead);
+
+            const spark = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x67e8f9 })
+            );
+            spark.position.y = 1.75;
+            laserCarriage.add(spark);
+            st1.add(laserCarriage);
+            animatableParts.laserCarriage = laserCarriage;
+            animatableParts.laserSpark = spark;
+
+            // ST-02: Milling Machine
+            const st2 = new THREE.Group();
+            registerStationBase(st2, STATIONS[1], 3.8, 3.6);
+            const cncEnclosure = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.0, 3.0), steelDark);
+            cncEnclosure.position.y = 1.5;
+            st2.add(cncEnclosure);
+            const cncWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.4), glassMat);
+            cncWindow.position.set(0, 1.8, 1.51);
+            st2.add(cncWindow);
+
+            const spindleGroup = new THREE.Group();
+            const spindle = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.8, 16), steelLight);
+            spindle.position.y = 2.15;
+            spindleGroup.add(spindle);
+            const cutterBit = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.02, 0.35, 8),
+                new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9 })
+            );
+            cutterBit.position.y = 1.7;
+            spindleGroup.add(cutterBit);
+            st2.add(spindleGroup);
+            animatableParts.spindleGroup = spindleGroup;
+            animatableParts.cutterBit = cutterBit;
+
+            // ST-03: Welding Station (Articulated 6-Axis Robot)
+            const st3 = new THREE.Group();
+            registerStationBase(st3, STATIONS[2], 3.6, 3.6);
+            const robotBase = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.5, 16), steelDark);
+            robotBase.position.set(0, 0.25, 0.9);
+            st3.add(robotBase);
+
+            const waist = new THREE.Group();
+            waist.position.set(0, 0.5, 0.9);
+            const waistMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.45, 16), robotYellow);
+            waist.add(waistMesh);
+
+            const lowerArmGroup = new THREE.Group();
+            lowerArmGroup.position.set(0, 0.25, 0);
+            const lowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.3, 0.28), robotYellow);
+            lowerArm.position.set(0, 0.65, 0);
+            lowerArmGroup.add(lowerArm);
+
+            const upperArmGroup = new THREE.Group();
+            upperArmGroup.position.set(0, 1.3, 0);
+            const upperArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.1, 0.22), steelLight);
+            upperArm.position.set(0, 0.55, 0);
+            upperArmGroup.add(upperArm);
+
+            const torch = new THREE.Mesh(
+                new THREE.ConeGeometry(0.12, 0.45, 12),
+                new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xb91c1c, emissiveIntensity: 0.5 })
+            );
+            torch.rotation.x = Math.PI;
+            torch.position.set(0, 1.15, 0);
+            upperArmGroup.add(torch);
+
+            const weldFlash = new THREE.PointLight(0x38bdf8, 3.5, 5.5);
+            weldFlash.position.set(0, 1.4, 0);
+            upperArmGroup.add(weldFlash);
+
+            lowerArmGroup.add(upperArmGroup);
+            waist.add(lowerArmGroup);
+            st3.add(waist);
+
+            animatableParts.weldRobot = { waist, lowerArmGroup, upperArmGroup };
+            animatableParts.weldFlash = weldFlash;
+
+            // ST-04: Painting Station
+            const st4 = new THREE.Group();
+            registerStationBase(st4, STATIONS[3], 3.8, 3.6);
+            const booth = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.9, 3.0), steelDark);
+            booth.position.y = 1.45;
+            st4.add(booth);
+            const boothWin = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.2), glassMat);
+            boothWin.position.set(0, 1.6, -1.51);
+            st4.add(boothWin);
+
+            const paintHead = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), steelLight);
+            paintHead.position.set(0, 2.2, 0);
+            st4.add(paintHead);
+
+            const sprayMist = new THREE.Mesh(
+                new THREE.ConeGeometry(0.4, 0.8, 12),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25 })
+            );
+            sprayMist.rotation.x = Math.PI;
+            sprayMist.position.set(0, 1.7, 0);
+            st4.add(sprayMist);
+            animatableParts.paintHead = paintHead;
+            animatableParts.sprayMist = sprayMist;
+
+            // ST-05: Assembly Robot
+            const st5 = new THREE.Group();
+            registerStationBase(st5, STATIONS[4], 3.6, 3.6);
+            const aBase = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.5, 16), steelDark);
+            aBase.position.set(0, 0.25, -0.9);
+            st5.add(aBase);
+
+            const aWaist = new THREE.Group();
+            aWaist.position.set(0, 0.5, -0.9);
+            const aWaistMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.45, 16), robotYellow);
+            aWaist.add(aWaistMesh);
+
+            const aLowerArm = new THREE.Group();
+            aLowerArm.position.set(0, 0.25, 0);
+            const aLowerMesh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.25, 0.26), robotYellow);
+            aLowerMesh.position.set(0, 0.625, 0);
+            aLowerArm.add(aLowerMesh);
+
+            const aUpperArm = new THREE.Group();
+            aUpperArm.position.set(0, 1.25, 0);
+            const aUpperMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.05, 0.2), steelLight);
+            aUpperMesh.position.set(0, 0.525, 0);
+            aUpperArm.add(aUpperMesh);
+
+            const gripper = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.15, 0.28), steelDark);
+            gripper.position.set(0, 1.1, 0);
+            aUpperArm.add(gripper);
+
+            aLowerArm.add(aUpperArm);
+            aWaist.add(aLowerArm);
+            st5.add(aWaist);
+            animatableParts.assemblyRobot = { waist: aWaist, lowerArmGroup: aLowerArm, upperArmGroup: aUpperArm };
+
+            // ST-06: Packaging Station
+            const st6 = new THREE.Group();
+            registerStationBase(st6, STATIONS[5], 3.8, 3.6);
+            const pkgArch = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.7, 1.6), steelDark);
+            pkgArch.position.y = 1.35;
+            st6.add(pkgArch);
+
+            const pkgPress = new THREE.Mesh(
+                new THREE.BoxGeometry(0.9, 0.35, 0.9),
+                new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.6, roughness: 0.4 })
+            );
+            pkgPress.position.set(0, 2.1, 0);
+            st6.add(pkgPress);
+            animatableParts.pkgPress = pkgPress;
+        }
+
+        // --- 8. WORKPIECE OBJECT POOL & MORPHING ---
+        function spawnWorkpiece(initialDist = 0) {
+            const group = new THREE.Group();
+            const wp = {
+                mesh: group,
+                dist: initialDist,
+                stage: 0,
+                passedStations: new Set(),
+                subMeshes: {}
+            };
+
+            // Stage 0: Raw Metal Sheet
+            const rawMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.3 });
+            const rawMesh = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.08, 0.75), rawMat);
+            rawMesh.position.y = 0.04;
+            group.add(rawMesh);
+            wp.subMeshes.stage0 = rawMesh;
+
+            // Stage 1: Cut Precision Sheet
+            const cutMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.7, roughness: 0.3 });
+            const cutMesh = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.1, 0.65), cutMat);
+            cutMesh.position.y = 0.05;
+            cutMesh.visible = false;
+            group.add(cutMesh);
+            wp.subMeshes.stage1 = cutMesh;
+
+            // Stage 2: Milled Block
+            const millMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6, roughness: 0.35 });
+            const millMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.24, 0.55), millMat);
+            millMesh.position.y = 0.12;
+            millMesh.visible = false;
+            group.add(millMesh);
+            wp.subMeshes.stage2 = millMesh;
+
+            // Stage 3: Welded Frame
+            const weldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.65, roughness: 0.3 });
+            const weldMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.55), weldMat);
+            weldMesh.position.y = 0.175;
+            weldMesh.visible = false;
+            group.add(weldMesh);
+            wp.subMeshes.stage3 = weldMesh;
+
+            // Stage 4: Coated Housing
+            const coatMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.4, roughness: 0.2 });
+            const coatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.38, 0.58), coatMat);
+            coatMesh.position.y = 0.19;
+            coatMesh.visible = false;
+            group.add(coatMesh);
+            wp.subMeshes.stage4 = coatMesh;
+
+            // Stage 5: Assembled Servo Unit
+            const assyMat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.5, roughness: 0.3 });
+            const assyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.42, 0.6), assyMat);
+            assyMesh.position.y = 0.21;
+            assyMesh.visible = false;
+            group.add(assyMesh);
+            wp.subMeshes.stage5 = assyMesh;
+
+            // Stage 6: Boxed Product
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.85 });
+            const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.5, 0.68), boxMat);
+            boxMesh.position.y = 0.25;
+            boxMesh.visible = false;
+            group.add(boxMesh);
+            wp.subMeshes.stage6 = boxMesh;
+
+            group.position.copy(getPointAtDistance(initialDist));
+            scene.add(group);
+            workpieces.push(wp);
+            return wp;
+        }
+
+        function updateWorkpieceVisualStage(wp) {
+            for (let i = 0; i <= 6; i++) {
+                if (wp.subMeshes[`stage${i}`]) {
+                    wp.subMeshes[`stage${i}`].visible = (i === wp.stage);
+                }
+            }
+        }
+
+        // --- 9. ANIMATION LOOP ---
+        function animate(now) {
+            requestAnimationFrame(animate);
+
+            const rawDt = (now - lastFrameTime) * 0.001;
+            lastFrameTime = now;
+            const dt = Math.min(rawDt, 0.1) * (isRunning ? simSpeed : 0);
+            const timeSec = now * 0.001 * (isRunning ? simSpeed : 0);
+
+            // Smooth Camera Interpolation
+            if (isCameraTransitioning) {
+                camera.position.lerp(desiredCamPos, 0.06);
+                camTarget.lerp(desiredCamTarget, 0.06);
+                camera.lookAt(camTarget);
+                if (camera.position.distanceTo(desiredCamPos) < 0.15) {
+                    isCameraTransitioning = false;
+                    syncSphericalFromCamera();
+                }
+            }
+
+            if (isRunning) {
+                // Spawn new workpieces if line has room
+                if (workpieces.length < 8) {
+                    const firstWp = workpieces[workpieces.length - 1];
+                    if (!firstWp || firstWp.dist > 7.5) {
+                        spawnWorkpiece(0);
+                    }
+                }
+
+                // 1. Animate Machine Components with Scenario Multipliers
+                animateMachines(timeSec);
+
+                // 2. Conveyor Workpiece Movement & Starvation Cascading
+                let baseConveyorSpeed = 2.4;
+                if (currentScenario === 'operational_mishap') {
+                    baseConveyorSpeed = 1.6;
+                } else if (currentScenario === 'cyber_spoof' && !honeypotActive) {
+                    baseConveyorSpeed = 1.35;
+                } else if (currentScenario === 'cyber_exfil' && !honeypotActive) {
+                    baseConveyorSpeed = 2.8;
+                }
+
+                for (let i = workpieces.length - 1; i >= 0; i--) {
+                    const wp = workpieces[i];
+                    let speed = baseConveyorSpeed;
+
+                    // Visible bunching before ST-03 during spoof / bottleneck
+                    if (currentScenario === 'cyber_spoof' && !honeypotActive) {
+                        if (wp.dist >= 14.0 && wp.dist < 22.5) {
+                            speed *= 0.65; // Bunching before welding
+                        } else if (wp.dist >= 22.5) {
+                            speed *= 1.25; // Pulling away = downstream starvation gap
+                        }
+                    }
+
+                    wp.dist += speed * dt;
+                    wp.mesh.position.copy(getPointAtDistance(wp.dist));
+
+                    // Check station milestones: ST1=4.0, ST2=13.0, ST3=22.5, ST4=38.0, ST5=47.5, ST6=56.5
+                    const stationMilestones = [
+                        { id: 1, dist: 4.0,  newStage: 1 },
+                        { id: 2, dist: 13.0, newStage: 2 },
+                        { id: 3, dist: 22.5, newStage: 3 },
+                        { id: 4, dist: 38.0, newStage: 4 },
+                        { id: 5, dist: 47.5, newStage: 5 },
+                        { id: 6, dist: 56.5, newStage: 6 }
+                    ];
+
+                    for (const m of stationMilestones) {
+                        if (wp.dist >= m.dist && !wp.passedStations.has(m.id)) {
+                            wp.passedStations.add(m.id);
+                            wp.stage = m.newStage;
+                            updateWorkpieceVisualStage(wp);
+                            onStationCompleteUnit(m.id);
+                        }
+                    }
+
+                    if (wp.dist >= totalPathLength) {
+                        scene.remove(wp.mesh);
+                        workpieces.splice(i, 1);
+                        pulseOutputPallet();
+                    }
+                }
+            }
+
+            updateHudTagPositions();
+
+            // Refresh DOM & HUD counters every 250ms
+            uiSyncAccumulator += rawDt;
+            if (uiSyncAccumulator >= 0.25) {
+                uiSyncAccumulator = 0;
+                updateHudTagValues();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function animateMachines(t) {
+            // ST-01 Laser Scan
+            if (animatableParts.laserCarriage) {
+                animatableParts.laserCarriage.position.x = Math.sin(t * 4.5) * 0.65;
+                animatableParts.laserCarriage.position.z = Math.cos(t * 3.2) * 0.35;
+                const sparkScale = 0.7 + Math.abs(Math.sin(t * 25)) * 0.8;
+                animatableParts.laserSpark.scale.set(sparkScale, sparkScale, sparkScale);
+            }
+
+            // ST-02 CNC Milling Spindle
+            if (animatableParts.spindleGroup) {
+                animatableParts.spindleGroup.position.y = 2.15 + Math.sin(t * 3.5) * 0.22;
+                animatableParts.cutterBit.rotation.y += 0.35;
+            }
+
+            // ST-03 Welding Robot: DYNAMIC SPEED MULTIPLIER & ERRATIC FLASH
+            if (animatableParts.weldRobot) {
+                const r = animatableParts.weldRobot;
+
+                let robotSpeedMult = 1.0;
+                if (currentScenario === 'operational_mishap') {
+                    robotSpeedMult = 0.6; // 40% deceleration (bearing friction)
+                } else if (currentScenario === 'cyber_spoof' && !honeypotActive) {
+                    robotSpeedMult = 0.55; // 55% physical throttle (silent sabotage)
+                } else if (currentScenario === 'cyber_exfil' && !honeypotActive) {
+                    robotSpeedMult = 1.85; // Spindle overdrive
+                }
+
+                const wt = t * robotSpeedMult;
+                r.waist.rotation.y = Math.sin(wt * 2.2) * 0.35;
+                r.lowerArmGroup.rotation.x = 0.25 + Math.sin(wt * 3.0) * 0.14;
+                r.upperArmGroup.rotation.x = 0.35 + Math.cos(wt * 3.0) * 0.15;
+
+                let flashOn = Math.sin(wt * 28) > 0.15;
+                if (currentScenario === 'cyber_exfil' && !honeypotActive) {
+                    // Erratic rapid flickering during exfil & overload
+                    flashOn = Math.sin(t * 85) > -0.2;
+                }
+                animatableParts.weldFlash.visible = flashOn;
+                animatableParts.weldFlash.position.x = Math.sin(wt * 2.2) * 0.45;
+            }
+
+            // ST-04 Painting Spray
+            if (animatableParts.paintHead) {
+                animatableParts.paintHead.position.x = Math.sin(t * 3.8) * 0.55;
+                animatableParts.sprayMist.material.opacity = 0.22 + Math.abs(Math.sin(t * 8)) * 0.22;
+            }
+
+            // ST-05 Assembly Arm
+            if (animatableParts.assemblyRobot) {
+                const a = animatableParts.assemblyRobot;
+                a.waist.rotation.y = Math.sin(t * 2.6) * 0.55;
+                a.lowerArmGroup.rotation.x = 0.22 + Math.abs(Math.sin(t * 2.6)) * 0.2;
+                a.upperArmGroup.rotation.x = 0.3 + Math.cos(t * 2.6) * 0.18;
+            }
+
+            // ST-06 Packaging Press
+            if (animatableParts.pkgPress) {
+                animatableParts.pkgPress.position.y = 2.1 + Math.sin(t * 3.2) * 0.25;
+            }
+        }
+
+        function onStationCompleteUnit(stationId) {
+            const st = STATIONS.find(s => s.id === stationId);
+            if (st) {
+                st.completed++;
+                if (selectedStationId === stationId) {
+                    document.getElementById('insp-count').textContent = `${st.completed} units`;
+                }
+            }
+
+            if (stationId === 6) {
+                const activeWO = workOrders[activeOrderIndex];
+                if (activeWO && activeWO.status === "In Progress") {
+                    activeWO.produced++;
+                    if (activeWO.produced >= activeWO.target) {
+                        activeWO.produced = activeWO.target;
+                        activeWO.status = "Completed";
+                        showToast(`Work Order ${activeWO.id} completed (${activeWO.target}/${activeWO.target} units)! Next batch queued.`);
+                        setTimeout(() => {
+                            if (workOrders[activeOrderIndex].status === "Completed") {
+                                triggerNewWorkOrder(true);
+                            }
+                        }, 1800);
+                    }
+                    renderWorkOrderInfo();
+                    renderPlanningTable();
+                }
+            }
+        }
+
+        function pulseOutputPallet() {
+            if (palletBoxes.length === 0) return;
+            const topBox = palletBoxes[palletBoxes.length - 1];
+            topBox.scale.set(1.12, 1.12, 1.12);
+            setTimeout(() => topBox.scale.set(1, 1, 1), 220);
+        }
+
+        // --- 10. FLOATING 3D HUD TAGS (2D Screen Space Projection) ---
+        function initHudTags() {
+            const layer = document.getElementById('hud-tags-layer');
+            layer.innerHTML = '';
+
+            STATIONS.forEach(st => {
+                const tag = document.createElement('div');
+                tag.id = `hud-tag-${st.id}`;
+                tag.className = 'station-hud-tag rounded-lg border border-slate-700/80 overflow-hidden cursor-pointer';
+                tag.onclick = () => openStationInspector(st.id);
+
+                tag.innerHTML = `
+                    <div id="hud-head-${st.id}" class="hud-header-green px-2.5 py-0.5 flex items-center justify-between text-[11px] font-bold text-white">
+                        <span>${st.code}</span>
+                        <span id="hud-head-badge-${st.id}" class="font-mono-tech opacity-95 text-[10px] uppercase">Running</span>
+                    </div>
+                    <div class="hud-body px-2.5 py-1.5 text-[10px] leading-snug text-slate-200 font-mono-tech">
+                        <div class="truncate"><span class="text-slate-400">station:</span> <span class="text-white font-semibold">${st.shortName}</span></div>
+                        <div><span class="text-slate-400">RPM (HMI):</span> <span id="hud-rpm-${st.id}" class="text-slate-100 font-bold">${st.reportedRpm}</span></div>
+                        <div><span class="text-slate-400">Amps (True):</span> <span id="hud-amps-${st.id}" class="text-emerald-400 font-bold">${st.actualAmps.toFixed(1)}A</span></div>
+                        <div id="hud-starve-row-${st.id}" class="hidden text-amber-400 font-bold">Starve ETA: <span id="hud-starve-val-${st.id}">18s</span></div>
+                        <div><span class="text-slate-400">status:</span> <span id="hud-status-${st.id}" class="text-emerald-400 font-semibold">${st.status}</span></div>
+                        <div><span class="text-slate-400">completed:</span> <span id="hud-qty-${st.id}" class="text-amber-300 font-bold">${st.completed}</span></div>
+                    </div>
+                `;
+                layer.appendChild(tag);
+            });
+        }
+
+        function updateHudTagPositions() {
+            const container = document.getElementById('three-canvas-wrapper');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            STATIONS.forEach(st => {
+                const tag = document.getElementById(`hud-tag-${st.id}`);
+                if (!tag) return;
+
+                if (!showHudTags) {
+                    tag.style.display = 'none';
+                    return;
+                }
+
+                const worldPos = new THREE.Vector3(
+                    st.pos.x + st.hudOffset.x,
+                    st.pos.y + st.hudOffset.y,
+                    st.pos.z + st.hudOffset.z
+                );
+                worldPos.project(camera);
+
+                if (worldPos.z > 1) {
+                    tag.style.display = 'none';
+                    return;
+                }
+
+                const screenX = (worldPos.x * 0.5 + 0.5) * width;
+                const screenY = (-(worldPos.y * 0.5) + 0.5) * height;
+
+                tag.style.display = 'block';
+                tag.style.left = `${screenX}px`;
+                tag.style.top = `${screenY}px`;
+            });
+        }
+
+        function updateHudTagValues() {
+            STATIONS.forEach(st => {
+                const statusEl = document.getElementById(`hud-status-${st.id}`);
+                const qtyEl = document.getElementById(`hud-qty-${st.id}`);
+                const headEl = document.getElementById(`hud-head-${st.id}`);
+                const badgeEl = document.getElementById(`hud-head-badge-${st.id}`);
+                const rpmEl = document.getElementById(`hud-rpm-${st.id}`);
+                const ampsEl = document.getElementById(`hud-amps-${st.id}`);
+                const starveRow = document.getElementById(`hud-starve-row-${st.id}`);
+                const starveVal = document.getElementById(`hud-starve-val-${st.id}`);
+
+                if (rpmEl) rpmEl.textContent = `${st.reportedRpm}`;
+                if (ampsEl) {
+                    ampsEl.textContent = `${st.actualAmps.toFixed(1)}A`;
+                    // Highlight divergence in red/purple
+                    if (Math.abs(st.actualAmps - st.expectedAmps) > 15) {
+                        ampsEl.className = currentScenario === 'cyber_exfil' ? "text-purple-400 font-bold animate-pulse" : "text-rose-400 font-bold animate-pulse";
+                    } else if (Math.abs(st.actualAmps - st.expectedAmps) > 5) {
+                        ampsEl.className = "text-amber-400 font-bold";
+                    } else {
+                        ampsEl.className = "text-emerald-400 font-bold";
+                    }
+                }
+
+                if (qtyEl) qtyEl.textContent = st.completed;
+
+                // Determine Header Styling
+                let headClass = "hud-header-green";
+                let badgeText = "Nominal";
+
+                if (st.id === 3) {
+                    if (honeypotActive) {
+                        headClass = "hud-header-isolated";
+                        badgeText = "SHADOW-ISOLATED";
+                    } else if (currentScenario === 'operational_mishap') {
+                        headClass = "hud-header-amber";
+                        badgeText = "Degraded";
+                    } else if (currentScenario === 'cyber_spoof') {
+                        headClass = "hud-header-spoofed";
+                        badgeText = "SPOOFED // LIE DETECTED";
+                    } else if (currentScenario === 'cyber_exfil') {
+                        headClass = "hud-header-exfil";
+                        badgeText = "EXFIL + OVERLOAD";
+                    }
+                } else if (st.ttsSec != null && st.ttsSec <= 60 && !honeypotActive) {
+                    headClass = "hud-header-starved";
+                    badgeText = "STARVED";
+                } else if (!isRunning) {
+                    headClass = "hud-header-idle";
+                    badgeText = "Standby";
+                }
+
+                if (headEl) headEl.className = `${headClass} px-2.5 py-0.5 flex items-center justify-between text-[11px] font-bold text-white`;
+                if (badgeEl) badgeEl.textContent = badgeText;
+                if (statusEl) {
+                    statusEl.textContent = st.status;
+                    statusEl.className = headClass.includes('green') || headClass.includes('isolated') ? "text-emerald-400 font-semibold" :
+                                         headClass.includes('amber') ? "text-amber-400 font-semibold" : "text-rose-400 font-semibold";
+                }
+
+                // Downstream Starvation countdown visibility
+                if (starveRow && starveVal) {
+                    if (st.ttsSec != null && st.ttsSec > 0 && !honeypotActive) {
+                        starveRow.classList.remove('hidden');
+                        starveVal.textContent = `Starve in ${st.ttsSec}s`;
+                    } else {
+                        starveRow.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        // --- 11. SCADA SIDEBAR & WORK ORDER RENDERING ---
+        function renderStationCards() {
+            const grid = document.getElementById('station-cards-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            STATIONS.forEach(st => {
+                const card = document.createElement('div');
+                card.onclick = () => openStationInspector(st.id);
+                card.className = 'bg-[#141822] hover:bg-[#1a2130] border border-slate-700/80 hover:border-blue-500/70 rounded-lg overflow-hidden cursor-pointer transition shadow';
+
+                let topBg = "bg-[#2563eb]";
+                if (st.id === 3) {
+                    if (honeypotActive) topBg = "bg-gradient-to-r from-cyan-600 to-emerald-600";
+                    else if (currentScenario === 'operational_mishap') topBg = "bg-amber-600";
+                    else if (currentScenario === 'cyber_spoof') topBg = "bg-rose-600 animate-pulse";
+                    else if (currentScenario === 'cyber_exfil') topBg = "bg-purple-600 animate-pulse";
+                } else if (st.ttsSec != null && !honeypotActive) {
+                    topBg = "bg-orange-600";
+                }
+
+                card.innerHTML = `
+                    <div class="${topBg} px-2 py-0.5 flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-white truncate">${st.shortName}</span>
+                        <span class="text-[9px] font-mono-tech text-white/90">${st.code}</span>
+                    </div>
+                    <div class="p-1.5 text-[9px] space-y-0.5 font-mono-tech text-slate-300">
+                        <div class="text-slate-400">RPM: <span class="text-slate-100 font-bold">${st.reportedRpm}</span></div>
+                        <div class="text-slate-400">Amps: <span class="text-emerald-400 font-bold">${st.actualAmps.toFixed(1)}A</span></div>
+                        <div class="text-slate-400 truncate">Trust: <span class="${st.trustScore < 50 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">${st.trustScore}%</span></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderWorkOrderInfo() {
+            const wo = workOrders[activeOrderIndex];
+            if (!wo) return;
+
+            const pct = Math.min(100, Math.round((wo.produced / wo.target) * 100));
+            document.getElementById('wo-number').textContent = wo.id;
+            document.getElementById('wo-status').textContent = wo.status;
+            document.getElementById('wo-status').className = wo.status === "Completed" ? "text-cyan-400 font-semibold" : "text-emerald-400 font-semibold";
+            document.getElementById('wo-product').textContent = wo.product;
+            document.getElementById('wo-qty-text').textContent = `${wo.produced} / ${wo.target} pcs`;
+            document.getElementById('wo-percent-text').textContent = `${pct}%`;
+
+            const circumference = 238.76;
+            const offset = circumference - (pct / 100) * circumference;
+            document.getElementById('wo-donut-circle').style.strokeDashoffset = offset;
+        }
+
+        function renderPlanningTable() {
+            const tbody = document.getElementById('planning-table-body');
+            tbody.innerHTML = '';
+
+            workOrders.forEach((wo, idx) => {
+                const pct = Math.min(100, Math.round((wo.produced / wo.target) * 100));
+                const isDone = pct === 100;
+                const barColor = isDone ? 'bg-[#10b981]' : 'bg-[#f59e0b]';
+                const rowBg = idx === activeOrderIndex ? 'bg-blue-950/40' : '';
+
+                const tr = document.createElement('tr');
+                tr.className = `${rowBg} hover:bg-slate-800/50 transition`;
+                tr.innerHTML = `
+                    <td class="py-1.5 text-slate-200 font-medium">${wo.id}</td>
+                    <td class="py-1.5 text-slate-300 font-sans truncate max-w-[85px]">${wo.product}</td>
+                    <td class="py-1.5 text-right pr-2 text-slate-200">${wo.produced}/${wo.target}</td>
+                    <td class="py-1.5">
+                        <div class="w-full bg-slate-700/80 rounded-full h-3 overflow-hidden relative flex items-center">
+                            <div class="${barColor} h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+                            <span class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow">${pct}%</span>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- 12. USER INTERACTIONS & CAMERA ---
+        function setCameraPreset(index) {
+            const preset = CAMERA_PRESETS[index];
+            if (!preset) return;
+
+            desiredCamPos.copy(preset.pos);
+            desiredCamTarget.copy(preset.target);
+            isCameraTransitioning = true;
+
+            document.querySelectorAll('.cam-btn').forEach((btn, i) => {
+                btn.className = (i === index)
+                    ? 'cam-btn px-3 py-1.5 rounded-md text-xs font-medium bg-[#3b82f6] text-white shadow-lg shadow-blue-600/30 border border-blue-400/50 transition'
+                    : 'cam-btn px-3 py-1.5 rounded-md text-xs font-medium bg-[#1e2432]/90 hover:bg-[#2b3346] text-slate-200 shadow-lg border border-slate-600/70 transition';
+            });
+        }
+
+        function syncSphericalFromCamera() {
+            const offset = new THREE.Vector3().subVectors(camera.position, camTarget);
+            camSpherical.radius = offset.length();
+            camSpherical.theta = Math.atan2(offset.x, offset.z);
+            camSpherical.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / camSpherical.radius)));
+        }
+
+        function updateCameraFromSpherical() {
+            const sinPhi = Math.sin(camSpherical.phi);
+            camera.position.x = camTarget.x + camSpherical.radius * sinPhi * Math.sin(camSpherical.theta);
+            camera.position.y = camTarget.y + camSpherical.radius * Math.cos(camSpherical.phi);
+            camera.position.z = camTarget.z + camSpherical.radius * sinPhi * Math.cos(camSpherical.theta);
+            camera.lookAt(camTarget);
+        }
+
+        function setupViewportInteractions(domElement) {
+            const raycaster = new THREE.Raycaster();
+            const pointer = new THREE.Vector2();
+            let downPos = { x: 0, y: 0 };
+
+            domElement.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                isCameraTransitioning = false;
+                prevMouse = { x: e.clientX, y: e.clientY };
+                downPos = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - prevMouse.x;
+                const dy = e.clientY - prevMouse.y;
+                prevMouse = { x: e.clientX, y: e.clientY };
+
+                camSpherical.theta -= dx * 0.0065;
+                camSpherical.phi = Math.max(0.22, Math.min(1.42, camSpherical.phi - dy * 0.0065));
+                updateCameraFromSpherical();
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                const distMoved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+                if (distMoved < 5) {
+                    const rect = domElement.getBoundingClientRect();
+                    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    raycaster.setFromCamera(pointer, camera);
+                    const hits = raycaster.intersectObjects(stationMeshes);
+                    if (hits.length > 0 && hits[0].object.userData.stationId) {
+                        openStationInspector(hits[0].object.userData.stationId);
+                    }
+                }
+            });
+
+            domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                isCameraTransitioning = false;
+                camSpherical.radius = Math.max(10, Math.min(48, camSpherical.radius + e.deltaY * 0.02));
+                updateCameraFromSpherical();
+            }, { passive: false });
+        }
+
+        function openStationInspector(stationId) {
+            const st = STATIONS.find(s => s.id === stationId);
+            if (!st) return;
+
+            selectedStationId = stationId;
+            document.getElementById('insp-badge').textContent = st.code;
+            document.getElementById('insp-title').textContent = st.name;
+            document.getElementById('insp-desc').textContent = st.description;
+            document.getElementById('insp-type').textContent = st.type;
+            document.getElementById('insp-status').textContent = st.status;
+            document.getElementById('insp-rpm').textContent = `${st.reportedRpm} RPM`;
+            document.getElementById('insp-amps').textContent = `${st.actualAmps.toFixed(1)} A`;
+            document.getElementById('insp-trust').textContent = `${st.trustScore}% Trust`;
+            document.getElementById('insp-count').textContent = `${st.completed} units`;
+
+            document.getElementById('station-inspector').classList.remove('hidden');
+        }
+
+        function closeInspector() {
+            selectedStationId = null;
+            document.getElementById('station-inspector').classList.add('hidden');
+        }
+
+        function toggleSimulation() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('btn-toggle-sim');
+            const text = document.getElementById('btn-toggle-text');
+            const iconPause = document.getElementById('icon-pause');
+            const iconPlay = document.getElementById('icon-play');
+            const overallStatus = document.getElementById('overall-status-text');
+
+            if (isRunning) {
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition";
+                text.textContent = "Pause";
+                iconPause.classList.remove('hidden');
+                iconPlay.classList.add('hidden');
+                overallStatus.textContent = "Working";
+                overallStatus.className = "text-sm font-bold text-[#10b981] tracking-wide";
+            } else {
+                btn.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow transition";
+                text.textContent = "Resume";
+                iconPause.classList.add('hidden');
+                iconPlay.classList.remove('hidden');
+                overallStatus.textContent = "Standby";
+                overallStatus.className = "text-sm font-bold text-amber-400 tracking-wide";
+            }
+            updateHudTagValues();
+        }
+
+        function setSimSpeed(speed) {
+            simSpeed = speed;
+            [1, 2, 5].forEach(s => {
+                const btn = document.getElementById(`speed-${s}`);
+                btn.className = (s === speed)
+                    ? "speed-btn px-2 py-1 rounded-md font-mono-tech font-semibold bg-blue-600 text-white transition"
+                    : "speed-btn px-2 py-1 rounded-md font-mono-tech text-slate-400 hover:text-white transition";
+            });
+        }
+
+        function toggleHudTags() {
+            showHudTags = !showHudTags;
+            const btn = document.getElementById('btn-toggle-hud');
+            btn.innerHTML = showHudTags
+                ? `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>HUD Tags: ON</span>`
+                : `<span class="w-2 h-2 rounded-full bg-slate-500"></span><span>HUD Tags: OFF</span>`;
+        }
+
+        function triggerNewWorkOrder(autoTriggered = false) {
+            const products = [
+                { name: "ServoDrive-X200", drawing: "TH-06-204", target: 20 },
+                { name: "Actuator-M90", drawing: "TH-04-112", target: 25 },
+                { name: "GearBox-H40", drawing: "TH-02-089", target: 15 }
+            ];
+            const pick = products[woCounter % products.length];
+            const newId = `WO20261117${String(woCounter).padStart(2, '0')}`;
+            woCounter++;
+
+            if (workOrders[activeOrderIndex] && workOrders[activeOrderIndex].status === "In Progress") {
+                workOrders[activeOrderIndex].status = "Completed";
+            }
+
+            workOrders.unshift({
+                id: newId,
+                product: pick.name,
+                drawing: pick.drawing,
+                target: pick.target,
+                produced: 0,
+                status: "In Progress"
+            });
+            if (workOrders.length > 5) workOrders.pop();
+            activeOrderIndex = 0;
+
+            renderWorkOrderInfo();
+            renderPlanningTable();
+            if (!autoTriggered) {
+                showToast(`Dispatched new Work Order ${newId} (${pick.name})`);
+            }
+        }
+
+        function resetSimulation() {
+            workpieces.forEach(wp => scene.remove(wp.mesh));
+            workpieces = [];
+            STATIONS.forEach(st => st.completed = 0);
+            workOrders[activeOrderIndex].produced = 0;
+            workOrders[activeOrderIndex].status = "In Progress";
+            [0.08, 0.25, 0.42, 0.60, 0.78].forEach(p => spawnWorkpiece(p * totalPathLength));
+            switchScenario('normal');
+            renderWorkOrderInfo();
+            renderPlanningTable();
+            updateHudTagValues();
+            showToast("Production line telemetry & physical state reset to nominal baseline.");
+        }
+
+        function showToast(msg) {
+            const banner = document.getElementById('toast-banner');
+            document.getElementById('toast-message').textContent = msg;
+            banner.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                banner.classList.add('translate-y-20', 'opacity-0');
+            }, 3400);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const formatted = now.toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('live-clock').textContent = formatted;
+        }
+
+        // Starvation Countdown Timer Tick
+        setInterval(() => {
+            if (currentScenario === 'cyber_spoof' && !honeypotActive && isRunning) {
+                [4, 5, 6].forEach(id => {
+                    if (starvationCountdowns[id] > 0) {
+                        starvationCountdowns[id]--;
+                    }
+                    const st = STATIONS.find(s => s.id === id);
+                    if (st) {
+                        st.ttsSec = starvationCountdowns[id];
+                        if (st.ttsSec === 0) {
+                            st.status = "STARVED (Depleted)";
+                        }
+                    }
+                });
+                updateHudTagValues();
+            }
+        }, 1000);
+
+        // Background sync with live backend if running
+        async function pollBackend() {
+            try {
+                const res = await fetch('http://localhost:8000/api/state', { signal: AbortSignal.timeout(900) });
+                if (res.ok) {
+                    isLiveBackend = true;
+                    document.getElementById('header-conn-dot').className = "w-2 h-2 rounded-full bg-emerald-400 led-active";
+                    document.getElementById('header-conn-text').textContent = "Backend Live (8000)";
+                }
+            } catch {
+                isLiveBackend = false;
+                document.getElementById('header-conn-dot').className = "w-2 h-2 rounded-full bg-cyan-400 led-active";
+                document.getElementById('header-conn-text').textContent = "VoltGuard Standalone Engine";
+            }
+        }
+        setInterval(pollBackend, 3500);
+
+        function onWindowResize() {
+            const container = document.getElementById('three-canvas-wrapper');
+            if (!container || !renderer || !camera) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // --- 13. WINDOW ONLOAD BOOTSTRAP ---
+        window.onload = function () {
+            renderStationCards();
+            renderWorkOrderInfo();
+            renderPlanningTable();
+            renderSecurityLogs();
+            updateForensicsCard();
+            initThreeScene();
+            initHudTags();
+            updateClock();
+            setInterval(updateClock, 1000);
+            pollBackend();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>
