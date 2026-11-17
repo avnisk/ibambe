@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chronos-Twin: Multi-Level Cyber-Physical Digital Twin</title>
+  <!-- Chart.js CDN for Side-Channel Power-to-Packet Chart (with offline canvas fallback built into app.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. Top Command Header & Scenario Trigger Bar
+       ========================================================================= -->
+  <header class="command-header">
+    <div class="brand-section">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1>Chronos-Twin: Multi-Level Cyber-Physical Digital Twin</h1>
+        <p>Cross-Node Flow Conservation &bull; Side-Channel Lie Detector &bull; Active Deception</p>
+      </div>
+    </div>
+
+    <!-- 3 Prominent Scenario Trigger Buttons -->
+    <div class="scenario-bar">
+      <span class="scenario-label">Inject Scenario:</span>
+      <button id="btn-scenario-normal" class="scenario-btn normal active" onclick="switchScenario('normal')">
+        <span>🟢</span> Normal Production
+      </button>
+      <button id="btn-scenario-cyber" class="scenario-btn cyber" onclick="switchScenario('cyber_espionage')">
+        <span>⚡</span> Cyber-Suspected Disruption (Espionage)
+      </button>
+      <button id="btn-scenario-operational" class="scenario-btn operational" onclick="switchScenario('operational_degradation')">
+        <span>⚠️</span> Operational Degradation
+      </button>
+    </div>
+
+    <!-- Connection State & Mode Indicator -->
+    <div class="header-status-group">
+      <div id="connection-pill" class="source-badge">
+        <span class="pulse-dot"></span>
+        <span id="connection-label">CONNECTING...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       Top KPI Strip
+       ========================================================================= -->
+  <section class="kpi-strip">
+    <!-- Classification Badge -->
+    <div class="kpi-card" id="kpi-classification-card">
+      <span class="kpi-label">System State Classification</span>
+      <div class="kpi-value-container">
+        <span id="classification-badge" class="classification-badge badge-nominal">
+          <span class="pulse-dot"></span> NOMINAL
+        </span>
+      </div>
+      <span class="kpi-subtext" id="kpi-subtext-verdict">All 6 physical &amp; network stages in equilibrium</span>
+    </div>
+
+    <!-- Explainable Risk Score -->
+    <div class="kpi-card" id="kpi-risk-card">
+      <span class="kpi-label">Physics-Cross-Audit Risk Score</span>
+      <div class="kpi-value-container">
+        <span id="kpi-risk-score" class="kpi-value">4</span>
+        <span class="kpi-subtext">/ 100</span>
+      </div>
+      <span class="kpi-subtext" id="kpi-risk-status" style="color: var(--accent-green);">Low Risk (Inflow = Outflow)</span>
+    </div>
+
+    <!-- Projected Ripple Loss -->
+    <div class="kpi-card" id="kpi-loss-card">
+      <span class="kpi-label">Projected Ripple Loss</span>
+      <div class="kpi-value-container">
+        <span id="kpi-loss-val" class="kpi-value" style="color: var(--accent-green);">$0</span>
+        <span class="kpi-subtext">/ hr</span>
+      </div>
+      <span class="kpi-subtext" id="kpi-loss-subtext">Nominal output quota met</span>
+    </div>
+
+    <!-- Downstream Impact Countdown (Time-to-Starvation) -->
+    <div class="kpi-card" id="kpi-starvation-card">
+      <span class="kpi-label">Downstream Impact Countdown</span>
+      <div class="kpi-value-container">
+        <span id="kpi-starvation-val" class="kpi-value">No Bottleneck</span>
+      </div>
+      <span class="kpi-subtext" id="kpi-starvation-subtext">All downstream buffers stable</span>
+    </div>
+
+    <!-- Active Defense Deception Status -->
+    <div class="kpi-card kpi-purple" id="kpi-honeypot-card">
+      <span class="kpi-label">Cyber Deception Subsystem</span>
+      <div class="kpi-value-container">
+        <span id="kpi-honeypot-status" class="kpi-value" style="font-size: 1.15rem; color: var(--accent-purple);">STANDBY</span>
+      </div>
+      <span class="kpi-subtext" id="kpi-honeypot-detail">Decoy PLC Ready for Quarantine</span>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       Main Content Container
+       ========================================================================= -->
+  <main class="main-container">
+
+    <!-- =======================================================================
+         2. Hero Visual: Animated Multi-Level 6-Station Dependency Graph
+         ======================================================================= -->
+    <section class="graph-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span>🏭</span> Multi-Level 6-Station Dependency Graph &amp; Buffer Flow Dynamics
+        </div>
+        <div class="graph-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--accent-green);"></span> Nominal</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--accent-critical);"></span> Spoofed / Espionage</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--accent-amber);"></span> Degraded / Bottleneck</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--accent-orange);"></span> Starving Buffer</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--accent-purple);"></span> Shadow-Isolated</div>
+        </div>
+      </div>
+
+      <!-- 6-Station Flow Layout -->
+      <div class="flow-diagram-container" id="stations-flow-container">
+        <!-- Station 1 -->
+        <div class="station-card" id="station-card-S1" onclick="selectStation('S1')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 1 &bull; Prep</span>
+              <span class="station-name">S1 Cutting</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S1">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S1">99.8%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S1">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S1">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S1">18.2A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S1">
+            <span>Buffer Out: <strong id="buf-val-S1">45</strong> u</span>
+            <span id="starve-timer-S1">Stable</span>
+          </div>
+        </div>
+
+        <!-- Pipe S1 -> S2 -->
+        <div class="flow-pipe" id="pipe-S1-S2">
+          <div class="pipe-label" id="rate-S1-S2">120 u/h</div>
+          <div class="pipe-track">
+            <div class="pipe-flow-active" id="flow-anim-S1-S2"></div>
+          </div>
+          <div class="buffer-bar-container">
+            <div class="buffer-bar-outer">
+              <div class="buffer-bar-inner" id="buf-bar-S1-S2" style="width: 45%;"></div>
+            </div>
+            <div class="buffer-stats-text">
+              <span>Buf 1-2</span><span id="buf-text-S1-S2">45/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 2 -->
+        <div class="station-card" id="station-card-S2" onclick="selectStation('S2')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 2 &bull; Machining</span>
+              <span class="station-name">S2 Milling</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S2">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S2">99.4%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S2">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S2">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S2">18.1A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S2">
+            <span>Buffer Out: <strong id="buf-val-S2">50</strong> u</span>
+            <span id="starve-timer-S2">Stable</span>
+          </div>
+        </div>
+
+        <!-- Pipe S2 -> S3 -->
+        <div class="flow-pipe" id="pipe-S2-S3">
+          <div class="pipe-label" id="rate-S2-S3">120 u/h</div>
+          <div class="pipe-track">
+            <div class="pipe-flow-active" id="flow-anim-S2-S3"></div>
+          </div>
+          <div class="buffer-bar-container">
+            <div class="buffer-bar-outer">
+              <div class="buffer-bar-inner" id="buf-bar-S2-S3" style="width: 50%;"></div>
+            </div>
+            <div class="buffer-stats-text">
+              <span>Buf 2-3</span><span id="buf-text-S2-S3">50/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 3 (Crucial Node: welding) -->
+        <div class="station-card selected" id="station-card-S3" onclick="selectStation('S3')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 3 &bull; Joining (Target)</span>
+              <span class="station-name">S3 Welding</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S3">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S3">99.9%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S3">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S3">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S3">18.0A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S3">
+            <span>Buffer Out: <strong id="buf-val-S3">50</strong> u</span>
+            <span id="starve-timer-S3">Stable</span>
+          </div>
+        </div>
+
+        <!-- Pipe S3 -> S4 -->
+        <div class="flow-pipe" id="pipe-S3-S4">
+          <div class="pipe-label" id="rate-S3-S4">120 u/h</div>
+          <div class="pipe-track">
+            <div class="pipe-flow-active" id="flow-anim-S3-S4"></div>
+          </div>
+          <div class="buffer-bar-container">
+            <div class="buffer-bar-outer">
+              <div class="buffer-bar-inner" id="buf-bar-S3-S4" style="width: 50%;"></div>
+            </div>
+            <div class="buffer-stats-text">
+              <span>Buf 3-4</span><span id="buf-text-S3-S4">50/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 4 -->
+        <div class="station-card" id="station-card-S4" onclick="selectStation('S4')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 4 &bull; Surface</span>
+              <span class="station-name">S4 Painting</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S4">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S4">99.5%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S4">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S4">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S4">17.9A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S4">
+            <span>Buffer Out: <strong id="buf-val-S4">48</strong> u</span>
+            <span id="starve-timer-S4">Stable</span>
+          </div>
+        </div>
+
+        <!-- Pipe S4 -> S5 -->
+        <div class="flow-pipe" id="pipe-S4-S5">
+          <div class="pipe-label" id="rate-S4-S5">120 u/h</div>
+          <div class="pipe-track">
+            <div class="pipe-flow-active" id="flow-anim-S4-S5"></div>
+          </div>
+          <div class="buffer-bar-container">
+            <div class="buffer-bar-outer">
+              <div class="buffer-bar-inner" id="buf-bar-S4-S5" style="width: 48%;"></div>
+            </div>
+            <div class="buffer-stats-text">
+              <span>Buf 4-5</span><span id="buf-text-S4-S5">48/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 5 -->
+        <div class="station-card" id="station-card-S5" onclick="selectStation('S5')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 5 &bull; Assembly</span>
+              <span class="station-name">S5 Assembly</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S5">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S5">99.7%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S5">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S5">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S5">18.0A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S5">
+            <span>Buffer Out: <strong id="buf-val-S5">52</strong> u</span>
+            <span id="starve-timer-S5">Stable</span>
+          </div>
+        </div>
+
+        <!-- Pipe S5 -> S6 -->
+        <div class="flow-pipe" id="pipe-S5-S6">
+          <div class="pipe-label" id="rate-S5-S6">120 u/h</div>
+          <div class="pipe-track">
+            <div class="pipe-flow-active" id="flow-anim-S5-S6"></div>
+          </div>
+          <div class="buffer-bar-container">
+            <div class="buffer-bar-outer">
+              <div class="buffer-bar-inner" id="buf-bar-S5-S6" style="width: 52%;"></div>
+            </div>
+            <div class="buffer-stats-text">
+              <span>Buf 5-6</span><span id="buf-text-S5-S6">52/100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 6 -->
+        <div class="station-card" id="station-card-S6" onclick="selectStation('S6')">
+          <div class="station-header">
+            <div class="station-id-name">
+              <span class="station-level">Level 6 &bull; Packaging</span>
+              <span class="station-name">S6 Packing</span>
+            </div>
+            <span class="station-status-pill pill-nominal" id="pill-S6">NOMINAL</span>
+          </div>
+          <div class="station-metrics">
+            <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-val" id="val-uptime-S6">99.9%</span></div>
+            <div class="metric-item"><span class="metric-label">Throughput</span><span class="metric-val" id="val-flow-S6">120 u/h</span></div>
+            <div class="metric-item"><span class="metric-label">PLC RPM</span><span class="metric-val" id="val-rpm-S6">2,400</span></div>
+            <div class="metric-item"><span class="metric-label">Current</span><span class="metric-val" id="val-amps-S6">18.1A / 18.0A</span></div>
+          </div>
+          <div class="starvation-timer-box normal" id="starve-box-S6">
+            <span>Final Line Output</span>
+            <span id="starve-timer-S6">Nominal</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         Bottom Grid: Lie Detector (Left) + Action Center & Defense (Right)
+         ======================================================================= -->
+    <div class="bottom-grid">
+
+      <!-- =====================================================================
+           3. Side-Channel "Power-to-Packet" Lie Detector Panel
+           ===================================================================== -->
+      <section class="lie-detector-panel">
+        <div class="detector-header">
+          <div class="detector-title-group">
+            <span class="section-title"><span>🔍</span> Side-Channel "Power-to-Packet" Lie Detector</span>
+            <span id="detector-station-name" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">Station S3 (Welding)</span>
+          </div>
+          <span class="detector-badge normal" id="detector-discrepancy-badge">Zero Discrepancy (Physical = Software)</span>
+        </div>
+
+        <!-- Divergence Callout Card -->
+        <div class="discrepancy-callout nominal" id="discrepancy-callout-card">
+          <div class="callout-col">
+            <span class="callout-title">Software Telemetry (PLC Modbus)</span>
+            <span class="callout-val" id="callout-software" style="color: var(--accent-cyan);">2,400 RPM (99.9% Uptime)</span>
+          </div>
+          <div class="callout-col">
+            <span class="callout-title">Side-Channel Current (CT Clamp)</span>
+            <span class="callout-val" id="callout-physical" style="color: var(--accent-green);">18.0 A (Normal Load)</span>
+          </div>
+          <div class="callout-col">
+            <span class="callout-title">Physics Truth Delta</span>
+            <span class="callout-val" id="callout-delta" style="color: var(--accent-green);">CONCORDANT (Δ &lt; 2%)</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Dual-Line Chart -->
+        <div class="chart-container-box">
+          <canvas id="lieDetectorChart"></canvas>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           4. Action Center & Deception Honeypot Panel
+           ===================================================================== -->
+      <section class="action-defense-panel">
+
+        <!-- Explainable Forensic Brief -->
+        <div class="forensic-card" id="forensic-card-box">
+          <div class="section-title">
+            <span>🛡️</span> Explainable Forensic Brief &amp; Prescriptive Action
+          </div>
+          <div class="forensic-text" id="forensic-summary-text">
+            System running in equilibrium. Flow rates across Stations S1 through S6 conform strictly to conservation laws (Inflow = Outflow). No side-channel amperage anomalies detected.
+          </div>
+          <ul class="recommended-actions-list" id="recommended-actions-list">
+            <li>Continuous monitoring of Modbus TCP port 502 traffic</li>
+            <li>Maintain buffer capacities within nominal threshold (40–60 units)</li>
+          </ul>
+        </div>
+
+        <!-- Active Cyber Deception Honeypot Control -->
+        <div class="honeypot-control-box" id="honeypot-box">
+          <div class="honeypot-header-row">
+            <div class="honeypot-title">
+              <span>⚡</span> Active Cyber Deception Engine
+            </div>
+            <!-- Interactive Honeypot Deploy Button -->
+            <button class="honeypot-deploy-btn" id="btn-deploy-honeypot" onclick="toggleHoneypot()">
+              <span id="honeypot-btn-icon">⚡</span>
+              <span id="honeypot-btn-text">Deploy Deception Honeypot PLC</span>
+            </button>
+          </div>
+          <div class="honeypot-status-banner" id="honeypot-banner">
+            <span id="honeypot-banner-icon">ℹ️</span>
+            <span id="honeypot-banner-text">Honeypot Standby: Ready to quarantine malicious actor upon detection of PLC firmware manipulation.</span>
+          </div>
+        </div>
+
+        <!-- Live OT Security & Modbus Packet Feed -->
+        <div class="terminal-box">
+          <div class="terminal-topbar">
+            <div class="terminal-title">
+              <span>🖥️</span> LIVE OT SECURITY &amp; MODBUS PACKET TELEMETRY
+            </div>
+            <div class="terminal-dots">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+          <div class="terminal-feed" id="terminal-feed-logs">
+            <!-- Populated dynamically -->
+            <div class="log-entry">
+              <span class="log-time">12:00:00</span>
+              <span class="log-sev sev-INFO">INFO</span>
+              <span class="log-src">192.168.1.1</span>
+              <span class="log-msg">SCADA polling cycle completed across 6 nodes. Normal Modbus FC03 response.</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
