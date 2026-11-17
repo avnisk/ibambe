@@ -1,0 +1,9 @@
+# Chronos-Twin — Python backend dependencies
+# Install: pip install -r requirements.txt
+
+fastapi>=0.100.0
+uvicorn>=0.22.0
+networkx>=3.1
+numpy>=1.24.0
+pandas>=2.0.0
+pydantic>=2.0.0
