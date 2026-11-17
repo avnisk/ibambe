@@ -1,56 +1,125 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { Activity, ShieldCheck, Terminal } from "lucide-react";
+import { Activity, Terminal, Menu, X } from "lucide-react";
+
+const navLinks = [
+  { label: "Overview", href: "#hero" },
+  { label: "Side-channel audit", href: "#detection" },
+  { label: "Architecture", href: "#features" },
+] as const;
 
 export function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-zinc-950/85 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-2 text-zinc-100 hover:text-white transition">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 text-zinc-200">
-            <Activity className="h-4 w-4" />
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-6">
+        {/* Brand — fixed width, never shrinks */}
+        <Link
+          href="/"
+          className="mr-auto flex shrink-0 items-center gap-2 text-zinc-100 hover:text-white transition"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900">
+            <Activity className="h-4 w-4 text-zinc-200" />
           </div>
-          <span className="font-medium text-sm tracking-tight">Chronos-Twin</span>
-          <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] font-mono text-zinc-400 border border-zinc-800">
+          <span className="text-sm font-medium tracking-tight">Chronos-Twin</span>
+          <span className="hidden sm:inline rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500">
             v2.0
           </span>
         </Link>
 
-        {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-xs text-zinc-400 font-medium">
-          <a href="#hero" className="hover:text-zinc-200 transition">
-            Overview
-          </a>
-          <a href="#detection" className="hover:text-zinc-200 transition">
-            Side-channel audit
-          </a>
-          <a href="#features" className="hover:text-zinc-200 transition">
-            Architecture
-          </a>
+        {/* Desktop nav — centered, hidden below md */}
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-zinc-400">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="whitespace-nowrap py-1 hover:text-zinc-100 transition"
+            >
+              {link.label}
+            </a>
+          ))}
           <a
             href="https://github.com/avnisk/ibambe"
             target="_blank"
             rel="noreferrer"
-            className="hover:text-zinc-200 transition flex items-center gap-1.5"
+            className="flex items-center gap-1.5 whitespace-nowrap py-1 hover:text-zinc-100 transition"
           >
             <Terminal className="h-3.5 w-3.5" />
-            <span>Repository</span>
+            Repository
           </a>
         </nav>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-3">
+        {/* Right actions — never shrinks */}
+        <div className="ml-auto flex shrink-0 items-center gap-4">
+          <Link
+            href="/login"
+            className="hidden sm:inline-flex text-xs font-medium text-zinc-400 hover:text-zinc-100 transition whitespace-nowrap"
+          >
+            Sign in
+          </Link>
           <Link
             href="/dashboard/digital_twin_dashboard.html"
-            className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-100 px-3 text-xs font-medium text-zinc-950 transition hover:bg-white active:bg-zinc-200 shadow-sm"
+            className="hidden sm:inline-flex h-8 items-center justify-center rounded-md bg-zinc-100 px-3.5 text-xs font-medium text-zinc-950 shadow-sm transition hover:bg-white active:bg-zinc-200 whitespace-nowrap"
           >
-            Open command center
+            Command center
           </Link>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileOpen((o) => !o)}
+            className="inline-flex lg:hidden h-8 w-8 items-center justify-center rounded-md border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 transition"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <nav className="border-t border-zinc-800/60 bg-zinc-950/95 px-4 pb-4 pt-3 lg:hidden">
+          <div className="flex flex-col gap-3 text-sm font-medium text-zinc-400">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="hover:text-zinc-100 transition"
+              >
+                {link.label}
+              </a>
+            ))}
+            <a
+              href="https://github.com/avnisk/ibambe"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 hover:text-zinc-100 transition"
+            >
+              <Terminal className="h-3.5 w-3.5" />
+              Repository
+            </a>
+            <div className="mt-2 flex flex-col gap-2 border-t border-zinc-800/60 pt-3">
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="text-zinc-400 hover:text-zinc-100 transition"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/dashboard/digital_twin_dashboard.html"
+                onClick={() => setMobileOpen(false)}
+                className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-100 px-4 text-sm font-medium text-zinc-950 shadow-sm transition hover:bg-white active:bg-zinc-200"
+              >
+                Command center
+              </Link>
+            </div>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
